@@ -3,10 +3,13 @@ import { z } from 'zod';
 /**
  * Create item request validation schema
  */
+export const VALID_UNITS = ['kg', 'g', 'L', 'mL', 'each'] as const;
+export type Unit = (typeof VALID_UNITS)[number];
+
 export const CreateItemSchema = z.object({
-  name: z.string().min(1, 'Item name is required').max(100, 'Item name too long'),
+  name: z.string().min(1, 'Item name is required').max(200, 'Item name too long'),
   quantity: z.number().positive('Quantity must be positive').optional(),
-  unit: z.string().max(50, 'Unit too long').optional(),
+  unit: z.enum(VALID_UNITS, { errorMap: () => ({ message: 'Unit must be one of: kg, g, L, mL, each' }) }).optional(),
   notes: z.string().max(500, 'Notes too long').optional(),
 });
 
@@ -18,7 +21,7 @@ export type CreateItemRequest = z.infer<typeof CreateItemSchema>;
 export const UpdateItemSchema = z.object({
   name: z.string().min(1, 'Item name is required').max(100, 'Item name too long').optional(),
   quantity: z.number().positive('Quantity must be positive').optional(),
-  unit: z.string().max(50, 'Unit too long').optional(),
+  unit: z.enum(VALID_UNITS, { errorMap: () => ({ message: 'Unit must be one of: kg, g, L, mL, each' }) }).optional(),
   notes: z.string().max(500, 'Notes too long').optional(),
   completed: z.boolean().optional(),
 });

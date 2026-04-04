@@ -6,7 +6,7 @@ import pino from 'pino';
  * - Development: Pretty-print for readability
  * - Never log emails, names, or list contents — user IDs only
  */
-export const createLogger = () => {
+const createLogger = () => {
   const isDev = process.env.NODE_ENV === 'development';
 
   return pino({
@@ -27,14 +27,14 @@ export const createLogger = () => {
     },
     // Serializers to prevent logging PII
     serializers: {
-      req: (req: any) => ({
+      req: (req) => ({
         method: req.method,
         url: req.url,
         headers: {
           'user-agent': req.headers['user-agent'],
         },
       }),
-      res: (res: any) => ({
+      res: (res) => ({
         statusCode: res.statusCode,
       }),
     },
