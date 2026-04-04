@@ -36,6 +36,7 @@ export const ItemResponseSchema = z.object({
   unit: z.string().nullable(),
   notes: z.string().nullable(),
   completed: z.boolean(),
+  position: z.number(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -48,3 +49,12 @@ export type ItemResponse = z.infer<typeof ItemResponseSchema>;
 export const ItemsResponseSchema = z.array(ItemResponseSchema);
 
 export type ItemsResponse = z.infer<typeof ItemsResponseSchema>;
+
+/**
+ * Reorder items request validation schema
+ */
+export const ReorderItemsSchema = z.object({
+  itemIds: z.array(z.string().cuid()).min(1, 'At least one item ID is required'),
+});
+
+export type ReorderItemsRequest = z.infer<typeof ReorderItemsSchema>;
