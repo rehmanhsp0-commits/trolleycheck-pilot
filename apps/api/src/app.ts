@@ -7,6 +7,7 @@ import { isRedisHealthy, disconnectRedis } from './lib/cache.js';
 import authRouter from './routes/auth.js';
 import listRouter from './routes/lists.js';
 import compareRouter from './routes/compare.js';
+import productRouter from './routes/products.js';
 
 export const app = express();
 
@@ -65,6 +66,9 @@ app.use('/lists', listRouter);
 
 // Compare routes (authentication required)
 app.use('/compare', compareRouter);
+
+// Product catalogue (authentication required)
+app.use('/products', productRouter);
 
 /**
  * 404 handler
