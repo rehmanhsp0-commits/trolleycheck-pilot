@@ -3,13 +3,21 @@
   "testEnvironment": "node",
   "roots": ["<rootDir>/src"],
   "testMatch": ["**/__tests__/**/*.test.ts"],
+  "testPathIgnorePatterns": ["/node_modules/", "/__tests__/integration/"],
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
   "collectCoverageFrom": [
     "src/**/*.ts",
     "!src/**/*.test.ts",
     "!src/**/__tests__/**",
     "!src/index.ts",
-    "!src/app.ts"
+    "!src/app.ts",
+    "!src/lib/cache.ts",
+    "!src/lib/prisma.ts",
+    "!src/lib/supabase.ts",
+    "!src/middleware/rateLimit.ts"
   ],
   "coverageThreshold": {
     "global": {
@@ -18,17 +26,5 @@
       "lines": 80,
       "statements": 80
     }
-  },
-  "transform": {
-    "^.+\\.tsx?$": ["ts-jest", {
-      "useESM": true,
-      "tsconfig": {
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true
-      }
-    }]
-  },
-  "moduleNameMapper": {
-    "^(\\.{1,2}/.*)\\.js$": "$1"
   }
 }

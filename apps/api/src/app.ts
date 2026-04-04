@@ -1,11 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger } from './lib/logger.js';
 import { getPrisma, disconnectPrisma } from './lib/prisma.js';
 import { isRedisHealthy, disconnectRedis } from './lib/cache.js';
-import authRoutes from './routes/auth.js';
-import listRoutes from './routes/lists.js';
+import authRouter from './routes/auth.js';
+import listRouter from './routes/lists.js';
 
 export const app = express();
 
@@ -32,7 +32,6 @@ app.get('/health', async (_req: Request, res: Response): Promise<void> => {
     const prisma = getPrisma();
     const redisHealthy = await isRedisHealthy();
 
-    // Check database connectivity
     await prisma.$queryRaw`SELECT 1`;
 
     const status = redisHealthy ? 'healthy' : 'degraded';
@@ -58,10 +57,10 @@ app.get('/health', async (_req: Request, res: Response): Promise<void> => {
 });
 
 // Auth routes (no authentication required for register/login)
-app.use('/auth', authRoutes);
+app.use('/auth', authRouter);
 
 // List routes (authentication required)
-app.use('/lists', listRoutes);
+app.use('/lists', listRouter);
 
 /**
  * 404 handler
@@ -77,7 +76,8 @@ app.use((req: Request, res: Response) => {
 /**
  * Error handler
  */
-app.use((err: any, req: Request, res: Response) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   logger.error({ err, path: req.path, method: req.method }, 'Unhandled error');
 
   res.status(500).json({
@@ -88,7 +88,7 @@ app.use((err: any, req: Request, res: Response) => {
 });
 
 /**
- * Graceful shutdown handler
+ * Graceful shutdown handlers
  */
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');

@@ -3,7 +3,7 @@ import { validateRequest } from '../middleware/validate.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { generalRateLimit } from '../middleware/rateLimit.js';
 import { CreateListSchema, UpdateListSchema } from '../schemas/list.schema.js';
-import { CreateItemSchema, UpdateItemSchema } from '../schemas/item.schema.js';
+import { CreateItemSchema, UpdateItemSchema, ReorderItemsSchema } from '../schemas/item.schema.js';
 import { getPrisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
 
@@ -120,7 +120,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       include: {
         items: {
           orderBy: {
-            createdAt: 'asc',
+            position: 'asc',
           },
         },
       },
@@ -307,6 +307,13 @@ router.post(
         });
       }
 
+      // Get the current max position for the list
+      const maxPositionResult = await prisma.item.aggregate({
+        where: { listId },
+        _max: { position: true },
+      });
+      const nextPosition = (maxPositionResult._max.position || 0) + 1;
+
       const item = await prisma.item.create({
         data: {
           listId,
@@ -315,6 +322,7 @@ router.post(
           unit,
           notes,
           checked: false, // New items start as unchecked
+          position: nextPosition,
         },
       });
 
@@ -374,7 +382,7 @@ router.get('/:id/items', async (req: Request, res: Response) => {
         listId,
       },
       orderBy: {
-        createdAt: 'asc',
+        position: 'asc',
       },
     });
 
@@ -398,6 +406,121 @@ router.get('/:id/items', async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * PUT /lists/:id/items/reorder
+ * Reorder items in a grocery list
+ * Requires authentication and list ownership
+ * Accepts: { itemIds: string[] }
+ * Returns: updated items array with new order
+ */
+router.put(
+  '/:id/items/reorder',
+  validateRequest(ReorderItemsSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { id: listId } = req.params;
+      const { itemIds } = req.body;
+      const userId = req.user!.id;
+
+      const prisma = getPrisma();
+
+      // Verify list ownership
+      const list = await prisma.list.findFirst({
+        where: {
+          id: listId,
+          userId,
+        },
+      });
+
+      if (!list) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'List not found',
+          statusCode: 404,
+        });
+      }
+
+      // Get all items in the list
+      const existingItems = await prisma.item.findMany({
+        where: {
+          listId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const existingItemIds = existingItems.map(item => item.id);
+
+      // Validate that all provided itemIds exist in the list
+      const invalidItemIds = itemIds.filter((id: string) => !existingItemIds.includes(id));
+      if (invalidItemIds.length > 0) {
+        return res.status(400).json({
+          error: 'BAD_REQUEST',
+          message: `Invalid item IDs: ${invalidItemIds.join(', ')}`,
+          statusCode: 400,
+        });
+      }
+
+      // Check for duplicates
+      const uniqueItemIds = [...new Set(itemIds)];
+      if (uniqueItemIds.length !== itemIds.length) {
+        return res.status(400).json({
+          error: 'BAD_REQUEST',
+          message: 'Duplicate item IDs are not allowed',
+          statusCode: 400,
+        });
+      }
+
+      // Check that all items in the list are included
+      if (itemIds.length !== existingItemIds.length) {
+        return res.status(400).json({
+          error: 'BAD_REQUEST',
+          message: 'All items in the list must be included in the reorder request',
+          statusCode: 400,
+        });
+      }
+
+      // Perform atomic reorder using a transaction
+      const reorderedItems = await prisma.$transaction(async (tx) => {
+        const updates = itemIds.map((itemId: string, index: number) =>
+          tx.item.update({
+            where: { id: itemId },
+            data: { position: index + 1 },
+          })
+        );
+
+        await Promise.all(updates);
+
+        // Return the reordered items
+        return await tx.item.findMany({
+          where: { listId },
+          orderBy: { position: 'asc' },
+        });
+      });
+
+      logger.info(
+        {
+          userId,
+          listId,
+          itemCount: reorderedItems.length,
+        },
+        'Items reordered'
+      );
+
+      return res.status(200).json(reorderedItems);
+    } catch (err: any) {
+      logger.error({ err }, 'Item reorder error');
+
+      return res.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to reorder items',
+        statusCode: 500,
+      });
+    }
+  }
+);
 
 /**
  * PUT /lists/:id/items/:itemId
