@@ -74,7 +74,7 @@ describe('POST /lists/:id/duplicate (TC-8)', () => {
 
   it('creates a duplicate list and returns 201', async () => {
     mockListFindFirst.mockResolvedValue(SOURCE_LIST);
-    mockTransaction.mockImplementation(async (fn: Function) => fn({
+    mockTransaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn({
       list: { create: jest.fn().mockResolvedValue(DUPLICATE_LIST) },
     }));
 
@@ -89,7 +89,7 @@ describe('POST /lists/:id/duplicate (TC-8)', () => {
 
   it('sets duplicate name to "Copy of {original name}"', async () => {
     mockListFindFirst.mockResolvedValue(SOURCE_LIST);
-    mockTransaction.mockImplementation(async (fn: Function) => fn({
+    mockTransaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn({
       list: { create: jest.fn().mockResolvedValue(DUPLICATE_LIST) },
     }));
 
@@ -100,7 +100,7 @@ describe('POST /lists/:id/duplicate (TC-8)', () => {
 
   it('all copied items have checked: false', async () => {
     mockListFindFirst.mockResolvedValue(SOURCE_LIST);
-    mockTransaction.mockImplementation(async (fn: Function) => fn({
+    mockTransaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn({
       list: { create: jest.fn().mockResolvedValue(DUPLICATE_LIST) },
     }));
 
