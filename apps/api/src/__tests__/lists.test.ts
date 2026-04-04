@@ -380,7 +380,7 @@ describe('PUT /lists/:id/items/reorder', () => {
     const reorderedItems = [{ ...ITEM_1, id: CUID_2, position: 1 }, { ...ITEM_1, id: CUID_1, position: 2 }];
     mockListFindFirst.mockResolvedValue(LIST_1);
     mockItemFindMany.mockResolvedValue([{ id: CUID_1 }, { id: CUID_2 }]);
-    mockTransaction.mockImplementation(async (fn: Function) => fn({
+    mockTransaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn({
       item: {
         update: jest.fn().mockResolvedValue({}),
         findMany: jest.fn().mockResolvedValue(reorderedItems),
