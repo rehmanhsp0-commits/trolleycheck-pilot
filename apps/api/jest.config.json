@@ -1,0 +1,34 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "roots": ["<rootDir>/src"],
+  "testMatch": ["**/__tests__/**/*.test.ts"],
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/**/__tests__/**",
+    "!src/index.ts",
+    "!src/app.ts"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 70,
+      "functions": 80,
+      "lines": 80,
+      "statements": 80
+    }
+  },
+  "transform": {
+    "^.+\\.tsx?$": ["ts-jest", {
+      "useESM": true,
+      "tsconfig": {
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
+      }
+    }]
+  },
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  }
+}
