@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { validateRequest } from '../middleware/validate.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
 import { RegisterSchema, LoginSchema, RefreshSchema } from '../schemas/auth.schema.js';        
-import { registerUser, loginUser, refreshAccessToken } from '../lib/supabase.js';
+import { registerUser, loginUser, refreshAccessToken, logoutUser, deleteUserAccount } from '../lib/supabase.js';
 import { getPrisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
 import { isLoginLocked, incrementFailedLogin, clearFailedLogin } from '../lib/cache.js';
@@ -239,6 +239,92 @@ router.post(
       return res.status(500).json({
         error: 'INTERNAL_ERROR',
         message: 'Failed to refresh token',
+        statusCode: 500,
+      });
+    }
+  }
+);
+
+export default router;
+);
+
+/**
+ * POST /auth/logout
+ * Logout user by invalidating refresh token
+ * Accepts: { refreshToken }
+ * Returns: { message }
+ * Status 200 on success
+ * Status 400 on validation error
+ * Status 401 on invalid/expired refresh token
+ */
+router.post(
+  '/logout',
+  authRateLimit,
+  validateRequest(RefreshSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { refreshToken } = req.body;
+
+      // Logout user (verify token and log the action)
+      const logoutResult = await logoutUser(refreshToken);
+
+      return res.status(200).json(logoutResult);
+    } catch (err: any) {
+      // Handle known errors
+      if (err.status) {
+        return res.status(err.status).json({
+          error: err.code,
+          message: err.message,
+          statusCode: err.status,
+        });
+      }
+
+      logger.error({ err }, 'Logout error');
+
+      return res.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to logout',
+        statusCode: 500,
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /auth/account
+ * Delete user account and all associated data
+ * Accepts: { refreshToken }
+ * Returns: 204 No Content on success
+ * Status 400 on validation error
+ * Status 401 on invalid/expired refresh token
+ */
+router.delete(
+  '/account',
+  authRateLimit,
+  validateRequest(RefreshSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { refreshToken } = req.body;
+
+      // Delete user account and all data
+      await deleteUserAccount(refreshToken);
+
+      return res.status(204).send();
+    } catch (err: any) {
+      // Handle known errors
+      if (err.status) {
+        return res.status(err.status).json({
+          error: err.code,
+          message: err.message,
+          statusCode: err.status,
+        });
+      }
+
+      logger.error({ err }, 'Account deletion error');
+
+      return res.status(500).json({
+        error: 'INTERNAL_ERROR',
+        message: 'Failed to delete account',
         statusCode: 500,
       });
     }

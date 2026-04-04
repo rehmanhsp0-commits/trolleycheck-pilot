@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logger } from './logger.js';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://test.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://test.supabase.co';     
 const supabaseKey = process.env.SUPABASE_KEY || 'test-key';
 
 if (process.env.NODE_ENV === 'production') {
@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production') {
   }
 
   if (!process.env.SUPABASE_JWT_SECRET) {
-    throw new Error('SUPABASE_JWT_SECRET environment variable is not set');
+    throw new Error('SUPABASE_JWT_SECRET environment variable is not set');     
   }
 }
 
@@ -71,8 +71,8 @@ export async function registerUser(email: string, password: string) {
       user: {
         id: data.user.id,
         email: data.user.email || '',
-        createdAt: new Date(data.user.created_at || new Date().toISOString()),
-        updatedAt: new Date(data.user.updated_at || new Date().toISOString()),
+        createdAt: new Date(data.user.created_at || new Date().toISOString()),  
+        updatedAt: new Date(data.user.updated_at || new Date().toISOString()),  
       },
       accessToken,
       refreshToken,
@@ -182,8 +182,8 @@ export async function loginUser(email: string, password: string) {
       user: {
         id: data.user.id,
         email: data.user.email || '',
-        createdAt: new Date(data.user.created_at || new Date().toISOString()),
-        updatedAt: new Date(data.user.updated_at || new Date().toISOString()),
+        createdAt: new Date(data.user.created_at || new Date().toISOString()),  
+        updatedAt: new Date(data.user.updated_at || new Date().toISOString()),  
       },
       accessToken: data.session.access_token,
       refreshToken: data.session.refresh_token || '',
@@ -194,6 +194,103 @@ export async function loginUser(email: string, password: string) {
         error: err.message || err,
       },
       'Login failed'
+    );
+    throw err;
+  }
+}
+
+/**
+ * Logout user by invalidating refresh token
+ * Note: Stateless logout - client discards tokens
+ */
+export async function logoutUser(refreshToken: string) {
+  try {
+    // Verify the refresh token is valid before logout
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data.session) {
+      throw {
+        message: 'Invalid or expired token',
+        code: 'UNAUTHORIZED',
+        status: 401,
+      };
+    }
+
+    logger.info(
+      {
+        userId: data.session.user.id,
+      },
+      'User logged out'
+    );
+
+    // In a stateless system, logout is handled client-side
+    // The client should discard both access and refresh tokens
+    return {
+      message: 'Logged out successfully',
+    };
+  } catch (err: any) {
+    logger.error(
+      {
+        error: err.message,
+      },
+      'Logout failed'
+    );
+    throw err;
+  }
+}
+
+/**
+ * Delete user account and all associated data
+ */
+export async function deleteUserAccount(refreshToken: string) {
+  try {
+    // Verify the refresh token and get user info
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data.session) {
+      throw {
+        message: 'Invalid or expired token',
+        code: 'UNAUTHORIZED',
+        status: 401,
+      };
+    }
+
+    const userId = data.session.user.id;
+
+    // Delete user from Supabase Auth (this will cascade to all auth data)    
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (deleteError) {
+      throw {
+        message: 'Failed to delete account',
+        code: 'INTERNAL_ERROR',
+        status: 500,
+      };
+    }
+
+    logger.info(
+      {
+        userId,
+      },
+      'User account deleted'
+    );
+
+    // Note: Prisma user record and related data (lists, items) will be cascade deleted
+    // due to foreign key constraints in the database schema
+
+    return {
+      message: 'Account deleted successfully',
+    };
+  } catch (err: any) {
+    logger.error(
+      {
+        error: err.message,
+      },
+      'Account deletion failed'
     );
     throw err;
   }
