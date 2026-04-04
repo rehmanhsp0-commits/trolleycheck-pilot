@@ -274,6 +274,66 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /lists/:id/duplicate
+ * Duplicate a grocery list and all its items
+ * Requires authentication and ownership
+ * Returns: new list object with copied items (checked: false)
+ */
+router.post('/:id/duplicate', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const prisma = getPrisma();
+
+    const source = await prisma.list.findFirst({
+      where: { id, userId },
+      include: { items: { orderBy: { position: 'asc' } } },
+    });
+
+    if (!source) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'List not found',
+        statusCode: 404,
+      });
+    }
+
+    const duplicate = await prisma.$transaction(async (tx) => {
+      return tx.list.create({
+        data: {
+          name: `Copy of ${source.name}`,
+          userId,
+          items: {
+            create: source.items.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              notes: item.notes,
+              checked: false,
+              position: item.position,
+            })),
+          },
+        },
+        include: { items: { orderBy: { position: 'asc' } } },
+      });
+    });
+
+    logger.info({ userId, sourceListId: id, newListId: duplicate.id }, 'List duplicated');
+
+    return res.status(201).json(duplicate);
+  } catch (err: any) {
+    logger.error({ err }, 'List duplication error');
+
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to duplicate list',
+      statusCode: 500,
+    });
+  }
+});
+
+/**
  * POST /lists/:id/items
  * Add a new item to a specific grocery list
  * Requires authentication and list ownership
