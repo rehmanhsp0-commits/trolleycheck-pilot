@@ -74,8 +74,20 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
     // Build a lookup map: lowercase name → product
     const productMap = new Map(products.map((p) => [p.name.toLowerCase(), p]));
 
+    type StoreItemPrice = { unitPrice: number; total: number };
+    type ItemRow = {
+      name: string;
+      quantity: number;
+      unit: string;
+      freshmart: StoreItemPrice | null;
+      valuegrocer: StoreItemPrice | null;
+      cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+      saving: number;
+    };
+
     const freshmartItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
     const valuegrocerItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
+    const itemRows: ItemRow[] = [];
     const notFound: string[] = [];
 
     for (const item of list.items) {
@@ -95,27 +107,40 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
       }
 
       const quantity = item.quantity ?? 1;
+      const unit = item.unit ?? product.unit;
 
-      if (freshmartPrice) {
-        freshmartItems.push({
-          name: item.name,
-          quantity,
-          unit: item.unit ?? product.unit,
-          unitPrice: freshmartPrice.amount,
-          total: Math.round(freshmartPrice.amount * quantity * 100) / 100,
-        });
+      const fmPrice = freshmartPrice
+        ? { unitPrice: freshmartPrice.amount, total: Math.round(freshmartPrice.amount * quantity * 100) / 100 }
+        : null;
+      const vgPrice = valuegrocerPrice
+        ? { unitPrice: valuegrocerPrice.amount, total: Math.round(valuegrocerPrice.amount * quantity * 100) / 100 }
+        : null;
+
+      let itemCheaperStore: 'FreshMart' | 'ValueGrocer' | null = null;
+      let itemSaving = 0;
+
+      if (fmPrice && vgPrice) {
+        if (fmPrice.total < vgPrice.total) {
+          itemCheaperStore = 'FreshMart';
+          itemSaving = Math.round((vgPrice.total - fmPrice.total) * 100) / 100;
+        } else if (vgPrice.total < fmPrice.total) {
+          itemCheaperStore = 'ValueGrocer';
+          itemSaving = Math.round((fmPrice.total - vgPrice.total) * 100) / 100;
+        }
       }
 
-      if (valuegrocerPrice) {
-        valuegrocerItems.push({
-          name: item.name,
-          quantity,
-          unit: item.unit ?? product.unit,
-          unitPrice: valuegrocerPrice.amount,
-          total: Math.round(valuegrocerPrice.amount * quantity * 100) / 100,
-        });
+      itemRows.push({ name: item.name, quantity, unit, freshmart: fmPrice, valuegrocer: vgPrice, cheaperStore: itemCheaperStore, saving: itemSaving });
+
+      if (fmPrice) {
+        freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.unitPrice, total: fmPrice.total });
+      }
+      if (vgPrice) {
+        valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.unitPrice, total: vgPrice.total });
       }
     }
+
+    // Sort item comparisons by saving (largest first)
+    itemRows.sort((a, b) => b.saving - a.saving);
 
     const freshmartTotal = Math.round(freshmartItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
     const valuegrocerTotal = Math.round(valuegrocerItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
@@ -151,6 +176,7 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
     return res.status(200).json({
       freshmart: { total: freshmartTotal, items: freshmartItems },
       valuegrocer: { total: valuegrocerTotal, items: valuegrocerItems },
+      items: itemRows,
       cheaperStore,
       saving: { amount: savingAmount, percentage: savingPercentage },
       notFound,
