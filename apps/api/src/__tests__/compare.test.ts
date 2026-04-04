@@ -143,6 +143,65 @@ describe('POST /compare (TC-9)', () => {
     expect(milkFresh).toMatchObject({ quantity: 2, unitPrice: 2.5, total: 5 });
   });
 
+  it('returns unified items[] array with per-item store comparison (TC-10)', async () => {
+    mockListFindFirst.mockResolvedValue(LIST_WITH_ITEMS);
+    mockProductFindMany.mockResolvedValue(PRODUCTS_WITH_PRICES);
+
+    const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
+
+    expect(res.body.items).toHaveLength(2);
+
+    const milk = res.body.items.find((i: any) => i.name === 'Milk');
+    expect(milk).toMatchObject({
+      name: 'Milk',
+      quantity: 2,
+      freshmart: { unitPrice: 2.5, total: 5 },
+      valuegrocer: { unitPrice: 2.2, total: 4.4 },
+      cheaperStore: 'ValueGrocer',
+      saving: 0.6,
+    });
+  });
+
+  it('items[] sorted by saving descending (TC-10)', async () => {
+    // Milk saving: 5.00 - 4.40 = 0.60 (VG cheaper)
+    // Bread saving: 3.50 - 3.00 = 0.50 (FM cheaper)
+    // Sorted: Milk (0.60) first, Bread (0.50) second
+    mockListFindFirst.mockResolvedValue(LIST_WITH_ITEMS);
+    mockProductFindMany.mockResolvedValue(PRODUCTS_WITH_PRICES);
+
+    const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
+
+    expect(res.body.items[0].saving).toBeGreaterThanOrEqual(res.body.items[1].saving);
+  });
+
+  it('item cheaperStore is null when same price at both stores (TC-10)', async () => {
+    const equalProducts = [
+      { id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [
+        { store: 'FreshMart', amount: 2.5 },
+        { store: 'ValueGrocer', amount: 2.5 },
+      ]},
+    ];
+    mockListFindFirst.mockResolvedValue({ ...LIST_WITH_ITEMS, items: [LIST_WITH_ITEMS.items[0]] });
+    mockProductFindMany.mockResolvedValue(equalProducts);
+
+    const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
+
+    expect(res.body.items[0].cheaperStore).toBeNull();
+    expect(res.body.items[0].saving).toBe(0);
+  });
+
+  it('item valuegrocer is null when only FreshMart price exists (TC-10)', async () => {
+    const fmOnly = [{ id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [{ store: 'FreshMart', amount: 2.5 }] }];
+    mockListFindFirst.mockResolvedValue({ ...LIST_WITH_ITEMS, items: [LIST_WITH_ITEMS.items[0]] });
+    mockProductFindMany.mockResolvedValue(fmOnly);
+
+    const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
+
+    expect(res.body.items[0].freshmart).toMatchObject({ unitPrice: 2.5 });
+    expect(res.body.items[0].valuegrocer).toBeNull();
+    expect(res.body.items[0].cheaperStore).toBeNull();
+  });
+
   it('adds items with no matching product to notFound', async () => {
     const listWithUnknown = {
       ...LIST_WITH_ITEMS,

@@ -21,9 +21,27 @@ export const StoreResultSchema = z.object({
   items: z.array(ComparedItemSchema),
 });
 
+const StoreItemPriceSchema = z.object({
+  unitPrice: z.number(),
+  total: z.number(),
+});
+
+export const ItemComparisonSchema = z.object({
+  name: z.string(),
+  quantity: z.number(),
+  unit: z.string(),
+  freshmart: StoreItemPriceSchema.nullable(),
+  valuegrocer: StoreItemPriceSchema.nullable(),
+  cheaperStore: z.enum(['FreshMart', 'ValueGrocer']).nullable(),
+  saving: z.number(),
+});
+
+export type ItemComparison = z.infer<typeof ItemComparisonSchema>;
+
 export const CompareResponseSchema = z.object({
   freshmart: StoreResultSchema,
   valuegrocer: StoreResultSchema,
+  items: z.array(ItemComparisonSchema),
   cheaperStore: z.enum(['FreshMart', 'ValueGrocer']).nullable(),
   saving: z.object({
     amount: z.number(),
