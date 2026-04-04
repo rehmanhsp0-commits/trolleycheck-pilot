@@ -65,3 +65,96 @@ export async function disconnectRedis(): Promise<void> {
     logger.info('Redis disconnected');
   }
 }
+
+/**
+ * Increment failed login attempts for an email and check if account is locked
+ * Locks account for 15 minutes after 5 failed attempts
+ * Returns: { attempts, isLocked, remainingSeconds }
+ */
+export async function incrementFailedLogin(email: string): Promise<{
+  attempts: number;
+  isLocked: boolean;
+  remainingSeconds: number;
+}> {
+  try {
+    const client = await getRedisClient();
+    const key = `failed_login:${email.toLowerCase()}`;
+
+    const attempts = await client.incr(key);
+
+    let remainingSeconds = -1;
+    if (attempts === 1) {
+      // First attempt, set expiration to 15 minutes (900 seconds)
+      await client.expire(key, 900);
+      remainingSeconds = 900;
+    } else {
+      // Existing attempts, get TTL
+      const ttl = await client.ttl(key);
+      remainingSeconds = ttl > 0 ? ttl : 0;
+    }
+
+    const isLocked = attempts >= 5;
+
+    return {
+      attempts,
+      isLocked,
+      remainingSeconds,
+    };
+  } catch (err) {
+    logger.error({ err }, 'Failed to increment failed login counter');
+    // Fail open - if Redis is down, allow login attempt
+    return {
+      attempts: 0,
+      isLocked: false,
+      remainingSeconds: 0,
+    };
+  }
+}
+
+/**
+ * Check if an account is locked due to failed login attempts
+ * Returns: { isLocked, remainingSeconds }
+ */
+export async function isLoginLocked(email: string): Promise<{
+  isLocked: boolean;
+  remainingSeconds: number;
+}> {
+  try {
+    const client = await getRedisClient();
+    const key = `failed_login:${email.toLowerCase()}`;
+
+    const attempts = await client.get(key);
+    if (!attempts) {
+      return { isLocked: false, remainingSeconds: 0 };
+    }
+
+    const attemptCount = parseInt(attempts, 10);
+    if (attemptCount < 5) {
+      return { isLocked: false, remainingSeconds: 0 };
+    }
+
+    // Account is locked, get remaining TTL
+    const ttl = await client.ttl(key);
+    const remainingSeconds = ttl > 0 ? ttl : 0;
+
+    return { isLocked: true, remainingSeconds };
+  } catch (err) {
+    logger.warn({ err }, 'Failed to check login lock status');
+    // Fail open - if Redis is down, allow login attempt
+    return { isLocked: false, remainingSeconds: 0 };
+  }
+}
+
+/**
+ * Clear failed login attempts for an email (on successful login)
+ */
+export async function clearFailedLogin(email: string): Promise<void> {
+  try {
+    const client = await getRedisClient();
+    const key = `failed_login:${email.toLowerCase()}`;
+    await client.del(key);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to clear failed login counter');
+    // Non-critical error, don't throw
+  }
+}
