@@ -1,51 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
-import { getRedisClient } from '../lib/cache.js';
 import { logger } from '../lib/logger.js';
 
-/**
- * Rate limiting strategy using Redis
- * Track requests by IP address
- * Returns 429 if rate limit exceeded
- */
 export interface RateLimitOptions {
-  windowMs: number; // Time window in milliseconds
-  maxRequests: number; // Max requests per window
+  windowMs: number;
+  maxRequests: number;
 }
 
-/**
- * Create a rate limit middleware
- * For auth endpoints: 10 requests per minute per IP
- * For general endpoints: 100 requests per minute per IP
- */
+// In-memory fallback store when Redis is unavailable
+const memStore = new Map<string, { count: number; expiresAt: number }>();
+
 export function rateLimit(options: RateLimitOptions) {
   return async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-      const redis = await getRedisClient();
-      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      const ip = req.ip || 'unknown';
       const key = `rate-limit:${ip}`;
+      const now = Date.now();
+      const windowMs = options.windowMs;
 
-      const current = await redis.incr(key);
-
-      if (current === 1) {
-        // Set expiration on first request
-        await redis.expire(key, Math.ceil(options.windowMs / 1000));
+      // Clean up expired entries
+      const entry = memStore.get(key);
+      if (!entry || entry.expiresAt < now) {
+        memStore.set(key, { count: 1, expiresAt: now + windowMs });
+      } else {
+        entry.count++;
       }
+
+      const current = memStore.get(key)!.count;
 
       res.set('X-RateLimit-Limit', options.maxRequests.toString());
       res.set('X-RateLimit-Remaining', Math.max(0, options.maxRequests - current).toString());
 
       if (current > options.maxRequests) {
-        logger.warn(
-          {
-            ip,
-            path: req.path,
-            method: req.method,
-            requests: current,
-            limit: options.maxRequests,
-          },
-          'Rate limit exceeded'
-        );
-
+        logger.warn({ ip, path: req.path, method: req.method, requests: current }, 'Rate limit exceeded');
         return res.status(429).json({
           error: 'RATE_LIMITED',
           message: 'Too many requests, please try again later',
@@ -56,7 +42,6 @@ export function rateLimit(options: RateLimitOptions) {
       next();
     } catch (err) {
       logger.error({ err }, 'Rate limit error - allowing request');
-      // On Redis error, allow request to proceed
       next();
     }
   };
