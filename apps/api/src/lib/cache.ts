@@ -2,7 +2,6 @@ import { createClient, RedisClientType } from 'redis';
 import { logger } from './logger.js';
 
 let redisClient: RedisClientType | null = null;
-let redisAvailable = false;
 
 const REDIS_ENABLED = !!process.env.REDIS_URL;
 
@@ -22,21 +21,17 @@ async function getRedisClient(): Promise<RedisClientType | null> {
 
   redisClient.on('error', (err) => {
     logger.error({ err }, 'Redis client error');
-    redisAvailable = false;
   });
 
   redisClient.on('connect', () => {
     logger.info('Redis client connected');
-    redisAvailable = true;
   });
 
   try {
     await redisClient.connect();
-    redisAvailable = true;
   } catch (err) {
     logger.warn({ err }, 'Redis unavailable — running without cache');
     redisClient = null;
-    redisAvailable = false;
   }
 
   return redisClient;
