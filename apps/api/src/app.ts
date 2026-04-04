@@ -6,6 +6,7 @@ import { getPrisma, disconnectPrisma } from './lib/prisma.js';
 import { isRedisHealthy, disconnectRedis } from './lib/cache.js';
 import authRouter from './routes/auth.js';
 import listRouter from './routes/lists.js';
+import compareRouter from './routes/compare.js';
 
 export const app = express();
 
@@ -61,6 +62,9 @@ app.use('/auth', authRouter);
 
 // List routes (authentication required)
 app.use('/lists', listRouter);
+
+// Compare routes (authentication required)
+app.use('/compare', compareRouter);
 
 /**
  * 404 handler
