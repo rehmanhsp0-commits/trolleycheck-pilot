@@ -2,91 +2,94 @@ import { createClient, RedisClientType } from 'redis';
 import { logger } from './logger.js';
 
 let redisClient: RedisClientType | null = null;
+let redisAvailable = false;
+
+const REDIS_ENABLED = !!process.env.REDIS_URL;
 
 /**
- * Get or create a Redis client
- * Connects to Redis via REDIS_URL environment variable
- * Defaults to localhost:6379 for local development
+ * Get or create a Redis client. Returns null if Redis is not configured.
  */
-export async function getRedisClient(): Promise<RedisClientType> {
-  if (redisClient) {
-    return redisClient;
-  }
-
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+async function getRedisClient(): Promise<RedisClientType | null> {
+  if (!REDIS_ENABLED) return null;
+  if (redisClient) return redisClient;
 
   redisClient = createClient({
-    url: redisUrl,
+    url: process.env.REDIS_URL,
     socket: {
-      reconnectStrategy: (retries) => {
-        return Math.min(retries * 50, 500);
-      },
+      reconnectStrategy: (retries) => Math.min(retries * 50, 500),
     },
   }) as RedisClientType;
 
   redisClient.on('error', (err) => {
     logger.error({ err }, 'Redis client error');
+    redisAvailable = false;
   });
 
   redisClient.on('connect', () => {
     logger.info('Redis client connected');
+    redisAvailable = true;
   });
 
-  await redisClient.connect();
+  try {
+    await redisClient.connect();
+    redisAvailable = true;
+  } catch (err) {
+    logger.warn({ err }, 'Redis unavailable — running without cache');
+    redisClient = null;
+    redisAvailable = false;
+  }
+
   return redisClient;
 }
 
 /**
- * Check if Redis is available
+ * Check if Redis is available and healthy.
  */
 export async function isRedisHealthy(): Promise<boolean> {
+  if (!REDIS_ENABLED) return false;
   try {
     const client = await getRedisClient();
+    if (!client) return false;
     await client.ping();
     return true;
-  } catch (err) {
-    logger.warn({ err }, 'Redis health check failed');
+  } catch {
     return false;
   }
 }
 
 /**
- * Gracefully disconnect Redis
+ * Gracefully disconnect Redis.
  */
 export async function disconnectRedis(): Promise<void> {
   if (redisClient) {
-    await redisClient.quit();
+    await redisClient.quit().catch(() => {});
     redisClient = null;
-    logger.info('Redis disconnected');
+    redisAvailable = false;
   }
 }
 
 /**
- * Increment failed login attempts for an email and check if account is locked
- * Locks account for 15 minutes after 5 failed attempts
- * Returns: { attempts, isLocked, remainingSeconds }
+ * Increment failed login attempts. Falls back to allowing login if Redis is unavailable.
  */
 export async function incrementFailedLogin(
-  email: string
+  email: string,
 ): Promise<{ attempts: number; isLocked: boolean; remainingSeconds: number }> {
   try {
     const client = await getRedisClient();
-    const key = `failed_login:${email.toLowerCase()}`;
+    if (!client) return { attempts: 0, isLocked: false, remainingSeconds: 0 };
 
+    const key = `failed_login:${email.toLowerCase()}`;
     const attempts = await client.incr(key);
 
-    let remainingSeconds = -1;
+    let remainingSeconds = 900;
     if (attempts === 1) {
       await client.expire(key, 900);
-      remainingSeconds = 900;
     } else {
       const ttl = await client.ttl(key);
       remainingSeconds = ttl > 0 ? ttl : 0;
     }
 
-    const isLocked = attempts >= 5;
-
-    return { attempts, isLocked, remainingSeconds };
+    return { attempts, isLocked: attempts >= 5, remainingSeconds };
   } catch (err) {
     logger.error({ err }, 'Failed to increment failed login counter');
     return { attempts: 0, isLocked: false, remainingSeconds: 0 };
@@ -94,30 +97,23 @@ export async function incrementFailedLogin(
 }
 
 /**
- * Check if an account is locked due to failed login attempts
- * Returns: { isLocked, remainingSeconds }
+ * Check if an account is locked. Returns unlocked if Redis is unavailable.
  */
 export async function isLoginLocked(
-  email: string
+  email: string,
 ): Promise<{ isLocked: boolean; remainingSeconds: number }> {
   try {
     const client = await getRedisClient();
+    if (!client) return { isLocked: false, remainingSeconds: 0 };
+
     const key = `failed_login:${email.toLowerCase()}`;
-
     const attempts = await client.get(key);
-    if (!attempts) {
-      return { isLocked: false, remainingSeconds: 0 };
-    }
-
-    const attemptCount = parseInt(attempts, 10);
-    if (attemptCount < 5) {
+    if (!attempts || parseInt(attempts, 10) < 5) {
       return { isLocked: false, remainingSeconds: 0 };
     }
 
     const ttl = await client.ttl(key);
-    const remainingSeconds = ttl > 0 ? ttl : 0;
-
-    return { isLocked: true, remainingSeconds };
+    return { isLocked: true, remainingSeconds: ttl > 0 ? ttl : 0 };
   } catch (err) {
     logger.warn({ err }, 'Failed to check login lock status');
     return { isLocked: false, remainingSeconds: 0 };
@@ -125,13 +121,13 @@ export async function isLoginLocked(
 }
 
 /**
- * Clear failed login attempts for an email (on successful login)
+ * Clear failed login attempts on successful login.
  */
 export async function clearFailedLogin(email: string): Promise<void> {
   try {
     const client = await getRedisClient();
-    const key = `failed_login:${email.toLowerCase()}`;
-    await client.del(key);
+    if (!client) return;
+    await client.del(`failed_login:${email.toLowerCase()}`);
   } catch (err) {
     logger.warn({ err }, 'Failed to clear failed login counter');
   }
