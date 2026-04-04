@@ -5,6 +5,7 @@ import { logger } from './lib/logger.js';
 import { getPrisma, disconnectPrisma } from './lib/prisma.js';
 import { isRedisHealthy, disconnectRedis } from './lib/cache.js';
 import authRoutes from './routes/auth.js';
+import listRoutes from './routes/lists.js';
 
 export const app = express();
 
@@ -58,6 +59,9 @@ app.get('/health', async (_req: Request, res: Response): Promise<void> => {
 
 // Auth routes (no authentication required for register/login)
 app.use('/auth', authRoutes);
+
+// List routes (authentication required)
+app.use('/lists', listRoutes);
 
 /**
  * 404 handler
