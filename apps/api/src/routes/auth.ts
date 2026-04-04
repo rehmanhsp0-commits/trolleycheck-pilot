@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { validateRequest } from '../middleware/validate.js';
 import { authRateLimit } from '../middleware/rateLimit.js';
-import { RegisterSchema, LoginSchema } from '../schemas/auth.schema.js';
+import { RegisterSchema, LoginSchema } from '../schemas/auth.schema.js';        
 import { registerUser, loginUser } from '../lib/supabase.js';
 import { getPrisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
+import { isLoginLocked, incrementFailedLogin, clearFailedLogin } from '../lib/cache.js';
 
 const router = Router();
 
@@ -94,6 +95,7 @@ router.post(
  * Status 200 on success
  * Status 400 on validation error
  * Status 401 on invalid credentials
+ * Status 429 on account locked (5+ failed attempts in 15 min)
  */
 router.post(
   '/login',
@@ -103,8 +105,67 @@ router.post(
     try {
       const { email, password } = req.body;
 
+      // Check if account is locked due to failed login attempts
+      const lockStatus = await isLoginLocked(email);
+      if (lockStatus.isLocked) {
+        logger.warn(
+          {
+            email: email.toLowerCase(),
+            remainingSeconds: lockStatus.remainingSeconds,
+          },
+          'Login attempt on locked account'
+        );
+
+        return res.status(429).json({
+          error: 'ACCOUNT_LOCKED',
+          message: 'Account is temporarily locked. Please try again later.',
+          statusCode: 429,
+          retryAfter: lockStatus.remainingSeconds,
+        });
+      }
+
       // Login user with Supabase Auth
-      const authResult = await loginUser(email, password);
+      let authResult;
+      try {
+        authResult = await loginUser(email, password);
+      } catch (loginErr: any) {
+        // Login failed - increment failed attempts
+        if (loginErr.status === 401) {
+          const result = await incrementFailedLogin(email);
+
+          logger.warn(
+            {
+              email: email.toLowerCase(),
+              attempts: result.attempts,
+              isLocked: result.isLocked,
+            },
+            'Login attempt failed'
+          );
+
+          // Now that we've counted this attempt, check if newly locked
+          if (result.isLocked) {
+            return res.status(429).json({
+              error: 'ACCOUNT_LOCKED',
+              message: 'Account is temporarily locked. Please try again later.',
+              statusCode: 429,
+              retryAfter: result.remainingSeconds,
+            });
+          }
+
+          // Still under lock threshold, return generic 401
+          return res.status(401).json({
+            error: 'UNAUTHORIZED',
+            message: 'Invalid email or password',
+            statusCode: 401,
+          });
+        }
+
+        // Re-throw other errors
+        throw loginErr;
+      }
+
+      // Login successful - clear failed attempts
+      await clearFailedLogin(email);
 
       logger.info(
         {
