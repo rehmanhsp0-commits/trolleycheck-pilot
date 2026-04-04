@@ -9,20 +9,13 @@ let prisma: PrismaClient;
  */
 export function getPrisma(): PrismaClient {
   if (!prisma) {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+
     prisma = new PrismaClient({
-      log: [
-        { level: 'error', emit: 'event' },
-        { level: 'warn', emit: 'event' },
-      ],
-    });
-
-    // Log Prisma errors
-    prisma.$on('error', (e) => {
-      logger.error({ err: e }, 'Prisma error');
-    });
-
-    prisma.$on('warn', (e) => {
-      logger.warn({ msg: e }, 'Prisma warning');
+      log: [],
     });
   }
 

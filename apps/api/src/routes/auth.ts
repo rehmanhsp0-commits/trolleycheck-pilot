@@ -44,7 +44,7 @@ router.post(
         'User registration successful'
       );
 
-      res.status(201).json({
+      return res.status(201).json({
         user: {
           id: user.id,
           email: user.email,
@@ -81,6 +81,7 @@ router.post(
         message: 'Failed to register user',
         statusCode: 500,
       });
+      return;
     }
   }
 );
@@ -112,7 +113,7 @@ router.post(
         'User login successful'
       );
 
-      res.status(200).json(authResult);
+      return res.status(200).json(authResult);
     } catch (err: any) {
       // Handle known errors
       if (err.status) {
@@ -125,7 +126,7 @@ router.post(
 
       logger.error({ err }, 'Login error');
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'INTERNAL_ERROR',
         message: 'Failed to login',
         statusCode: 500,

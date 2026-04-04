@@ -21,7 +21,7 @@ declare global {
  * Extracts token from Authorization header and verifies it
  * Attaches user info to request object
  */
-export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<any> {
   try {
     const authHeader = req.headers.authorization;
 
@@ -34,11 +34,12 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         'Missing or invalid authorization header'
       );
 
-      return res.status(401).json({
+      res.status(401).json({
         error: 'UNAUTHORIZED',
         message: 'Missing or invalid authorization token',
         statusCode: 401,
       });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove "Bearer " prefix
@@ -66,8 +67,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         error: 'UNAUTHORIZED',
         message: 'Invalid or expired token',
         statusCode: 401,
-      });
-    }
+      });      return;    }
   } catch (err: any) {
     logger.error({ err }, 'Auth middleware error');
 
@@ -75,6 +75,5 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       error: 'INTERNAL_ERROR',
       message: 'Authentication error',
       statusCode: 500,
-    });
-  }
+    });    return;  }
 }

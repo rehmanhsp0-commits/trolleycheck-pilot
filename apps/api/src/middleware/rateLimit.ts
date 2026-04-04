@@ -18,7 +18,7 @@ export interface RateLimitOptions {
  * For general endpoints: 100 requests per minute per IP
  */
 export function rateLimit(options: RateLimitOptions) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
       const redis = await getRedisClient();
       const ip = req.ip || req.connection.remoteAddress || 'unknown';

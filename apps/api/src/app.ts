@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger } from './lib/logger.js';
 import { getPrisma, disconnectPrisma } from './lib/prisma.js';
-import { getRedisClient, isRedisHealthy, disconnectRedis } from './lib/cache.js';
+import { isRedisHealthy, disconnectRedis } from './lib/cache.js';
 import authRoutes from './routes/auth.js';
 
 export const app = express();
@@ -26,7 +26,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
  * Returns: { status, timestamp, version, db, cache }
  * Status 200 if healthy, 503 if service unavailable
  */
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (_req: Request, res: Response): Promise<void> => {
   try {
     const prisma = getPrisma();
     const redisHealthy = await isRedisHealthy();
