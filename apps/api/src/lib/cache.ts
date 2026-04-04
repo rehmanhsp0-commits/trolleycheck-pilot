@@ -59,7 +59,6 @@ export async function disconnectRedis(): Promise<void> {
   if (redisClient) {
     await redisClient.quit().catch(() => {});
     redisClient = null;
-    redisAvailable = false;
   }
 }
 
