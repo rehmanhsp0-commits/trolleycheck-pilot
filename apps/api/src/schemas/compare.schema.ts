@@ -6,6 +6,14 @@ export const CompareSchema = z.object({
 
 export type CompareRequest = z.infer<typeof CompareSchema>;
 
+export const SplitSchema = z.object({
+  listId: z.string().min(1, 'listId is required'),
+  minimumSaving: z.number().positive('minimumSaving must be positive').optional(),
+  excludeItems: z.array(z.string()).optional(),
+});
+
+export type SplitRequest = z.infer<typeof SplitSchema>;
+
 export const ComparedItemSchema = z.object({
   name: z.string(),
   quantity: z.number(),

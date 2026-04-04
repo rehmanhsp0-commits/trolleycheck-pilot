@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { validateRequest } from '../middleware/validate.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { generalRateLimit } from '../middleware/rateLimit.js';
-import { CompareSchema } from '../schemas/compare.schema.js';
+import { CompareSchema, SplitSchema } from '../schemas/compare.schema.js';
 import { getPrisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
 
@@ -187,6 +187,154 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
     return res.status(500).json({
       error: 'INTERNAL_ERROR',
       message: 'Failed to compare basket prices',
+      statusCode: 500,
+    });
+  }
+});
+
+const DEFAULT_MINIMUM_SAVING = 5;
+
+/**
+ * POST /compare/split
+ * Split-shop optimiser: assigns each item to the cheapest available store.
+ * Accepts: { listId, minimumSaving?, excludeItems? }
+ * Returns: {
+ *   freshmart: { items, subtotal },
+ *   valuegrocer: { items, subtotal },
+ *   totalSaving,
+ *   worthSplitting
+ * }
+ */
+router.post('/split', validateRequest(SplitSchema), async (req: Request, res: Response) => {
+  try {
+    const { listId, minimumSaving = DEFAULT_MINIMUM_SAVING, excludeItems = [] } = req.body;
+    const userId = req.user!.id;
+
+    const prisma = getPrisma();
+
+    const list = await prisma.list.findFirst({
+      where: { id: listId, userId },
+      include: { items: { orderBy: { position: 'asc' } } },
+    });
+
+    if (!list) {
+      return res.status(404).json({
+        error: 'NOT_FOUND',
+        message: 'List not found',
+        statusCode: 404,
+      });
+    }
+
+    const activeItems = list.items.filter(
+      (item) => !excludeItems.map((e: string) => e.toLowerCase()).includes(item.name.toLowerCase())
+    );
+
+    const itemNames = activeItems.map((item) => item.name);
+
+    const products = await prisma.product.findMany({
+      where: {
+        name: { in: itemNames, mode: 'insensitive' },
+        active: true,
+      },
+      include: {
+        prices: { where: { store: { in: [...STORES] } } },
+      },
+    });
+
+    const productMap = new Map(products.map((p) => [p.name.toLowerCase(), p]));
+
+    type SplitItem = { name: string; quantity: number; unit: string; unitPrice: number; total: number };
+    const freshmartItems: SplitItem[] = [];
+    const valuegrocerItems: SplitItem[] = [];
+
+    for (const item of activeItems) {
+      const product = productMap.get(item.name.toLowerCase());
+      if (!product) continue;
+
+      const fmPrice = product.prices.find((p) => p.store === 'FreshMart');
+      const vgPrice = product.prices.find((p) => p.store === 'ValueGrocer');
+
+      if (!fmPrice && !vgPrice) continue;
+
+      const quantity = item.quantity ?? 1;
+      const unit = item.unit ?? product.unit;
+
+      if (fmPrice && vgPrice) {
+        // Assign to cheaper store
+        if (fmPrice.amount <= vgPrice.amount) {
+          freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
+        } else {
+          valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
+        }
+      } else if (fmPrice) {
+        freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
+      } else if (vgPrice) {
+        valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
+      }
+    }
+
+    const fmSubtotal = Math.round(freshmartItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
+    const vgSubtotal = Math.round(valuegrocerItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
+    const splitTotal = Math.round((fmSubtotal + vgSubtotal) * 100) / 100;
+
+    // Best single-store: use the store that covers the most items at lowest cost
+    // Sum all items at FreshMart (use VG price if FM not available), and vice versa
+    let fmSingleTotal = 0;
+    let vgSingleTotal = 0;
+    let fmComplete = true;
+    let vgComplete = true;
+
+    for (const item of activeItems) {
+      const product = productMap.get(item.name.toLowerCase());
+      if (!product) continue;
+      const fmPrice = product.prices.find((p) => p.store === 'FreshMart');
+      const vgPrice = product.prices.find((p) => p.store === 'ValueGrocer');
+      const qty = item.quantity ?? 1;
+
+      if (fmPrice) {
+        fmSingleTotal += fmPrice.amount * qty;
+      } else {
+        fmComplete = false;
+      }
+      if (vgPrice) {
+        vgSingleTotal += vgPrice.amount * qty;
+      } else {
+        vgComplete = false;
+      }
+    }
+
+    fmSingleTotal = Math.round(fmSingleTotal * 100) / 100;
+    vgSingleTotal = Math.round(vgSingleTotal * 100) / 100;
+
+    // Cheapest single-store that has all found items; prefer the complete one
+    let cheapestSingle: number;
+    if (fmComplete && vgComplete) {
+      cheapestSingle = Math.min(fmSingleTotal, vgSingleTotal);
+    } else if (fmComplete) {
+      cheapestSingle = fmSingleTotal;
+    } else if (vgComplete) {
+      cheapestSingle = vgSingleTotal;
+    } else {
+      cheapestSingle = Math.min(fmSingleTotal, vgSingleTotal);
+    }
+
+    const totalSaving = Math.round((cheapestSingle - splitTotal) * 100) / 100;
+    const worthSplitting = totalSaving >= minimumSaving;
+
+    logger.info({ userId, listId, splitTotal, cheapestSingle, totalSaving, worthSplitting }, 'Split-shop optimiser completed');
+
+    return res.status(200).json({
+      freshmart: { items: freshmartItems, subtotal: fmSubtotal },
+      valuegrocer: { items: valuegrocerItems, subtotal: vgSubtotal },
+      totalSaving: Math.max(0, totalSaving),
+      worthSplitting,
+    });
+  } catch (err: any) {
+    logger.error({ err }, 'Split-shop optimiser error');
+
+    return res.status(500).json({
+      error: 'INTERNAL_ERROR',
+      message: 'Failed to calculate split-shop optimisation',
       statusCode: 500,
     });
   }
