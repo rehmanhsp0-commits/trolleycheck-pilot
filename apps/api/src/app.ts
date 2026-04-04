@@ -38,7 +38,7 @@ app.get('/health', async (_req: Request, res: Response): Promise<void> => {
 
     const status = redisHealthy ? 'healthy' : 'degraded';
 
-    res.status(redisHealthy ? 200 : 503).json({
+    res.status(200).json({
       status,
       timestamp: new Date().toISOString(),
       version: process.env.APP_VERSION || '0.1.0',
