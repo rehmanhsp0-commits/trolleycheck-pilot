@@ -246,7 +246,6 @@ router.post(
 );
 
 export default router;
-);
 
 /**
  * POST /auth/logout
@@ -330,5 +329,3 @@ router.delete(
     }
   }
 );
-
-export default router;
