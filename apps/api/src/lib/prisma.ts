@@ -16,6 +16,7 @@ export function getPrisma(): PrismaClient {
 
     prisma = new PrismaClient({
       log: [],
+      adapter: 'postgresql',
     });
   }
 
