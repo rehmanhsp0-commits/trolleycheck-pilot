@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
@@ -21,6 +21,7 @@ import { ListsScreen } from './src/screens/ListsScreen';
 import { ListDetailScreen } from './src/screens/ListDetailScreen';
 import { CompareScreen } from './src/screens/CompareScreen';
 import { SplitShopScreen } from './src/screens/SplitShopScreen';
+import { DashboardScreen } from './src/screens/DashboardScreen';
 import type { List } from './src/api/client';
 
 // ── Param types ───────────────────────────────────────────────────────────────
@@ -32,9 +33,7 @@ export type AuthStackParamList = {
 
 export type MainStackParamList = {
   Tabs: undefined;
-  ThisWeek: undefined;
   History: undefined;
-  Lists: undefined;
   ListDetail: { list: List };
   Compare: { listId: string };
   SplitShop: { listId: string };
@@ -44,6 +43,7 @@ export type TabParamList = {
   ThisWeek: undefined;
   Browse: undefined;
   AllLists: undefined;
+  Dashboard: undefined;
 };
 
 // ── Navigators ────────────────────────────────────────────────────────────────
@@ -53,14 +53,20 @@ const MainStack = createNativeStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000 },
-  },
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>;
+}
+
+// Consistent logout button used in header
+function LogoutButton() {
+  const logout = useAuthStore(s => s.logout);
   return (
-    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+    <Pressable onPress={logout} hitSlop={8} style={{ marginRight: 16 }}>
+      <Text style={{ fontSize: 13, color: theme.textSecondary, fontWeight: '600' }}>Log out</Text>
+    </Pressable>
   );
 }
 
@@ -99,6 +105,14 @@ function TabBar() {
           tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
         }}
       />
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -121,6 +135,7 @@ function MainNavigator() {
         headerTitleStyle: { fontWeight: '700', color: theme.textPrimary },
         headerShadowVisible: false,
         contentStyle: { backgroundColor: theme.background },
+        headerRight: () => <LogoutButton />,
       }}
     >
       <MainStack.Screen
@@ -180,10 +195,7 @@ const styles = StyleSheet.create({
     height: 60,
     paddingBottom: 6,
   },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  tabLabel: { fontSize: 11, fontWeight: '600' },
 });
 
 registerRootComponent(App);

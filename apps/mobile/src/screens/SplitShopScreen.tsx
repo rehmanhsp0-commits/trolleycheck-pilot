@@ -27,7 +27,7 @@ function SplitItemRow({ item }: { item: SplitItem }) {
         <Text style={styles.splitItemName}>{item.name}</Text>
         <Text style={styles.splitItemQty}>{item.quantity} {item.unit}</Text>
       </View>
-      <Text style={styles.splitItemPrice}>${item.price.toFixed(2)}</Text>
+      <Text style={styles.splitItemPrice}>${item.total.toFixed(2)}</Text>
     </View>
   );
 }
@@ -95,11 +95,11 @@ export function SplitShopScreen({ route }: Props) {
       '🛒 TrolleyCheck Split Shop',
       '',
       '📍 FreshMart',
-      ...result.freshmart.items.map((i) => `  ${i.name} — $${i.price.toFixed(2)}`),
+      ...result.freshmart.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
       `  Subtotal: $${result.freshmart.subtotal.toFixed(2)}`,
       '',
       '📍 ValueGrocer',
-      ...result.valuegrocer.items.map((i) => `  ${i.name} — $${i.price.toFixed(2)}`),
+      ...result.valuegrocer.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
       `  Subtotal: $${result.valuegrocer.subtotal.toFixed(2)}`,
       '',
       `Total saving: $${result.totalSaving.toFixed(2)}`,

@@ -315,5 +315,6 @@ export type SplitItem = {
   name: string;
   quantity: number;
   unit: string;
-  price: number;
+  unitPrice: number;
+  total: number;
 };
