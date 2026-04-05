@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -147,12 +148,18 @@ export function ListsScreen({ navigation }: Props) {
                 useListStore.getState().selectList(item);
                 navigation.navigate('ListDetail', { list: item });
               }}
-              onDelete={() =>
-                Alert.alert('Delete list', `Delete "${item.name}"? This cannot be undone.`, [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', style: 'destructive', onPress: () => deleteList(item.id) },
-                ])
-              }
+              onDelete={() => {
+                if (Platform.OS === 'web') {
+                  if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+                    deleteList(item.id);
+                  }
+                } else {
+                  Alert.alert('Delete list', `Delete "${item.name}"? This cannot be undone.`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => deleteList(item.id) },
+                  ]);
+                }
+              }}
             />
           )}
           ListEmptyComponent={
