@@ -1,5 +1,7 @@
 import React from 'react';
+import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -88,19 +90,23 @@ function MainNavigator() {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 
-export default function App() {
+function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.background }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <NavigationContainer>
-            <StatusBar style="dark" backgroundColor={theme.background} />
-            {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+              <StatusBar style="dark" backgroundColor={theme.background} />
+              {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+            </View>
           </NavigationContainer>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+registerRootComponent(App);

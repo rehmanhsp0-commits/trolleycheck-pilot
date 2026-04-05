@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -5,30 +6,39 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 const TOKEN_KEY = 'tc_access_token';
 const REFRESH_KEY = 'tc_refresh_token';
 
-// ── Token storage ────────────────────────────────────────────────────────────
+// ── Token storage (SecureStore on native, localStorage on web) ───────────────
+
+const store = {
+  get: (key: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.getItem(key))
+      : SecureStore.getItemAsync(key),
+  set: (key: string, value: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.setItem(key, value))
+      : SecureStore.setItemAsync(key, value),
+  delete: (key: string) =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.removeItem(key))
+      : SecureStore.deleteItemAsync(key),
+};
 
 export async function getAccessToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  return store.get(TOKEN_KEY);
 }
 
 export async function saveTokens(accessToken: string, refreshToken: string): Promise<void> {
-  await Promise.all([
-    SecureStore.setItemAsync(TOKEN_KEY, accessToken),
-    SecureStore.setItemAsync(REFRESH_KEY, refreshToken),
-  ]);
+  await Promise.all([store.set(TOKEN_KEY, accessToken), store.set(REFRESH_KEY, refreshToken)]);
 }
 
 export async function clearTokens(): Promise<void> {
-  await Promise.all([
-    SecureStore.deleteItemAsync(TOKEN_KEY),
-    SecureStore.deleteItemAsync(REFRESH_KEY),
-  ]);
+  await Promise.all([store.delete(TOKEN_KEY), store.delete(REFRESH_KEY)]);
 }
 
 // ── Refresh ──────────────────────────────────────────────────────────────────
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = await SecureStore.getItemAsync(REFRESH_KEY);
+  const refreshToken = await store.get(REFRESH_KEY);
   if (!refreshToken) return null;
 
   try {
@@ -86,7 +96,8 @@ async function apiFetch(path: string, init: RequestInit = {}, retry = true): Pro
   return res;
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
+async function handleResponse<T>(resOrPromise: Response | Promise<Response>): Promise<T> {
+  const res = await resOrPromise;
   const body = await res.json().catch(() => ({}));
 
   if (!res.ok) {
@@ -133,7 +144,7 @@ export const authApi = {
 
 export const listsApi = {
   getAll: () =>
-    handleResponse<{ data: List[]; count: number }>(apiFetch('/lists')),
+    handleResponse<List[]>(apiFetch('/lists')),
 
   create: (name: string) =>
     handleResponse<List>(
@@ -156,7 +167,7 @@ export const listsApi = {
     ),
 
   getItems: (id: string) =>
-    handleResponse<{ data: Item[]; count: number }>(apiFetch(`/lists/${id}/items`)),
+    handleResponse<Item[]>(apiFetch(`/lists/${id}/items`)),
 
   addItem: (listId: string, item: { name: string; quantity: number; unit: string; notes?: string }) =>
     handleResponse<Item>(
@@ -174,6 +185,15 @@ export const listsApi = {
   deleteItem: (listId: string, itemId: string) =>
     handleResponse<{ success: boolean }>(
       apiFetch(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),
+    ),
+};
+
+// ── Products ──────────────────────────────────────────────────────────────────
+
+export const productsApi = {
+  search: (q: string) =>
+    handleResponse<{ data: Product[]; count: number }>(
+      apiFetch(`/products?q=${encodeURIComponent(q)}`),
     ),
 };
 
@@ -253,4 +273,11 @@ export type SplitItem = {
   quantity: number;
   unit: string;
   price: number;
+};
+
+export type Product = {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
 };
