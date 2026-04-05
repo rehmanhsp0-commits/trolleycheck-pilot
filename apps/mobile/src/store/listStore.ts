@@ -34,8 +34,8 @@ export const useListStore = create<ListState>((set, get) => ({
   fetchLists: async () => {
     set({ isLoadingLists: true, error: null });
     try {
-      const { data } = await listsApi.getAll();
-      set({ lists: data, isLoadingLists: false });
+      const lists = await listsApi.getAll();
+      set({ lists, isLoadingLists: false });
     } catch (err: any) {
       set({ isLoadingLists: false, error: err.message });
     }
@@ -46,8 +46,8 @@ export const useListStore = create<ListState>((set, get) => ({
   fetchItems: async (listId) => {
     set({ isLoadingItems: true, error: null });
     try {
-      const { data } = await listsApi.getItems(listId);
-      set({ items: data, isLoadingItems: false });
+      const items = await listsApi.getItems(listId);
+      set({ items, isLoadingItems: false });
     } catch (err: any) {
       set({ isLoadingItems: false, error: err.message });
     }

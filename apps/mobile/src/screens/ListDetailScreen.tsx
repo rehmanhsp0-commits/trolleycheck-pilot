@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,38 +10,32 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useListStore } from '../store/listStore';
+import { productsApi } from '../api/client';
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { MainStackParamList } from '../../App';
-import type { Item } from '../api/client';
+import type { Item, Product } from '../api/client';
 
 type Props = {
   navigation: NativeStackNavigationProp<MainStackParamList, 'ListDetail'>;
   route: RouteProp<MainStackParamList, 'ListDetail'>;
 };
 
-const UNITS = ['each', 'kg', 'g', 'L', 'mL'] as const;
-type Unit = typeof UNITS[number];
+// ── Item row ──────────────────────────────────────────────────────────────────
 
 function ItemRow({
   item,
   onToggle,
   onDelete,
-  onEdit,
 }: {
   item: Item;
   onToggle: () => void;
   onDelete: () => void;
-  onEdit: () => void;
 }) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.itemRow, pressed && styles.itemRowPressed]}
-      onPress={onEdit}
-      onLongPress={onDelete}
-    >
+    <View style={styles.itemRow}>
       <Pressable style={styles.checkbox} onPress={onToggle} hitSlop={8}>
         <View style={[styles.checkboxBox, item.checked && styles.checkboxChecked]}>
           {item.checked && <Text style={styles.checkmark}>✓</Text>}
@@ -59,92 +53,144 @@ function ItemRow({
       <Pressable onPress={onDelete} hitSlop={8} style={styles.deleteBtn}>
         <Text style={styles.deleteIcon}>✕</Text>
       </Pressable>
+    </View>
+  );
+}
+
+// ── Search result row ─────────────────────────────────────────────────────────
+
+function SearchResultRow({
+  product,
+  onAdd,
+  adding,
+}: {
+  product: Product;
+  onAdd: () => void;
+  adding: boolean;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
+      onPress={onAdd}
+      disabled={adding}
+    >
+      <View style={styles.resultBody}>
+        <Text style={styles.resultName} numberOfLines={1}>{product.name}</Text>
+        <Text style={styles.resultMeta}>{product.category} · {product.unit}</Text>
+      </View>
+      {adding ? (
+        <LoadingSpinner color={theme.primary} />
+      ) : (
+        <View style={styles.addChip}>
+          <Text style={styles.addChipText}>+ Add</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
 
+// ── Main screen ───────────────────────────────────────────────────────────────
+
 export function ListDetailScreen({ navigation, route }: Props) {
   const { list } = route.params;
-  const { items, isLoadingItems, fetchItems, addItem, updateItem, deleteItem, toggleItem } =
-    useListStore();
+  const { items, isLoadingItems, fetchItems, addItem, deleteItem, toggleItem } = useListStore();
 
   const [showAdd, setShowAdd] = useState(false);
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [unit, setUnit] = useState<Unit>('each');
-  const [notes, setNotes] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [customQty, setCustomQty] = useState('1');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     navigation.setOptions({ title: list.name });
     fetchItems(list.id);
   }, [list.id]);
 
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) { setResults([]); return; }
+
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data } = await productsApi.search(query.trim());
+        setResults(data ?? []);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }, [query]);
+
   const checkedCount = items.filter((i) => i.checked).length;
 
-  const handleAdd = async () => {
-    const n = name.trim();
-    if (!n) return;
-    setAdding(true);
+  const handleAddProduct = async (product: Product) => {
+    setAddingId(product.id);
     try {
       await addItem(list.id, {
-        name: n,
-        quantity: parseFloat(quantity) || 1,
-        unit,
-        notes: notes.trim() || undefined,
+        name: product.name,
+        quantity: 1,
+        unit: product.unit,
       });
-      setName('');
-      setQuantity('1');
-      setNotes('');
-      setShowAdd(false);
     } finally {
-      setAdding(false);
+      setAddingId(null);
     }
   };
 
-  const handleEdit = (item: Item) => {
-    Alert.prompt(
-      'Edit item',
-      'Change item name',
-      (newName) => {
-        if (newName?.trim() && newName.trim() !== item.name) {
-          updateItem(list.id, item.id, { name: newName.trim() });
-        }
-      },
-      'plain-text',
-      item.name,
-    );
+  const handleAddCustom = async () => {
+    const n = query.trim();
+    if (!n) return;
+    setAddingId('custom');
+    try {
+      await addItem(list.id, {
+        name: n,
+        quantity: parseFloat(customQty) || 1,
+        unit: 'each',
+      });
+      setQuery('');
+      setResults([]);
+      setCustomQty('1');
+      setShowAdd(false);
+    } finally {
+      setAddingId(null);
+    }
   };
 
-  const handleDelete = (item: Item) => {
-    Alert.alert('Remove item', `Remove "${item.name}" from the list?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteItem(list.id, item.id) },
-    ]);
+  const closeAdd = () => {
+    setShowAdd(false);
+    setQuery('');
+    setResults([]);
+    setCustomQty('1');
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       {/* Compare CTA */}
       <Pressable
-        style={({ pressed }) => [styles.compareBtn, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.compareBtn, pressed && styles.pressed, items.length === 0 && styles.compareBtnDisabled]}
         onPress={() => navigation.navigate('Compare', { listId: list.id })}
         disabled={items.length === 0}
       >
         <Text style={styles.compareBtnText}>
-          {items.length === 0 ? 'Add items to compare' : '⚖️  Compare prices'}
+          {items.length === 0 ? 'Add items to compare prices' : '⚖️  Compare prices'}
         </Text>
       </Pressable>
 
       {/* Item count */}
-      <View style={styles.countRow}>
-        <Text style={styles.countText}>
-          {items.length} {items.length === 1 ? 'item' : 'items'}
-          {checkedCount > 0 ? ` · ${checkedCount} ticked` : ''}
-        </Text>
-      </View>
+      {items.length > 0 && (
+        <View style={styles.countRow}>
+          <Text style={styles.countText}>
+            {items.length} {items.length === 1 ? 'item' : 'items'}
+            {checkedCount > 0 ? ` · ${checkedCount} ticked` : ''}
+          </Text>
+        </View>
+      )}
 
-      {/* Items */}
+      {/* Items list */}
       {isLoadingItems && items.length === 0 ? (
         <LoadingSpinner fullScreen />
       ) : (
@@ -156,16 +202,17 @@ export function ListDetailScreen({ navigation, route }: Props) {
             <ItemRow
               item={item}
               onToggle={() => toggleItem(list.id, item.id, !item.checked)}
-              onDelete={() => handleDelete(item)}
-              onEdit={() => handleEdit(item)}
+              onDelete={() => deleteItem(list.id, item.id)}
             />
           )}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📝</Text>
-              <Text style={styles.emptyTitle}>No items yet</Text>
-              <Text style={styles.emptySubtitle}>Tap below to add your first item.</Text>
-            </View>
+            !showAdd ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>📝</Text>
+                <Text style={styles.emptyTitle}>No items yet</Text>
+                <Text style={styles.emptySubtitle}>Tap the button below to search for products.</Text>
+              </View>
+            ) : null
           }
         />
       )}
@@ -173,65 +220,82 @@ export function ListDetailScreen({ navigation, route }: Props) {
       {/* Add item panel */}
       {showAdd ? (
         <View style={styles.addPanel}>
-          <TextInput
-            style={styles.addInput}
-            value={name}
-            onChangeText={setName}
-            placeholder="Item name"
-            placeholderTextColor={theme.textHint}
-            autoFocus
-            maxLength={200}
-          />
-          <View style={styles.addRow}>
+          {/* Search bar */}
+          <View style={styles.searchRow}>
             <TextInput
-              style={[styles.addInput, styles.qtyInput]}
-              value={quantity}
-              onChangeText={setQuantity}
-              placeholder="Qty"
+              style={styles.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search products or type a custom item…"
               placeholderTextColor={theme.textHint}
-              keyboardType="numeric"
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleAddCustom}
+              clearButtonMode="while-editing"
             />
-            {/* Unit picker */}
-            <View style={styles.unitRow}>
-              {UNITS.map((u) => (
-                <Pressable
-                  key={u}
-                  style={[styles.unitChip, unit === u && styles.unitChipActive]}
-                  onPress={() => setUnit(u)}
-                >
-                  <Text style={[styles.unitChipText, unit === u && styles.unitChipTextActive]}>
-                    {u}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-          <TextInput
-            style={styles.addInput}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Notes (optional)"
-            placeholderTextColor={theme.textHint}
-          />
-          <View style={styles.addActions}>
-            <Pressable
-              style={styles.cancelAddBtn}
-              onPress={() => { setShowAdd(false); setName(''); setQuantity('1'); setNotes(''); }}
-            >
-              <Text style={styles.cancelAddText}>Cancel</Text>
+            <Pressable onPress={closeAdd} hitSlop={8} style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>✕</Text>
             </Pressable>
+          </View>
+
+          {/* Search results */}
+          {searching ? (
+            <View style={styles.searchLoading}>
+              <LoadingSpinner color={theme.primary} />
+              <Text style={styles.searchLoadingText}>Searching…</Text>
+            </View>
+          ) : results.length > 0 ? (
+            <ScrollView style={styles.results} keyboardShouldPersistTaps="handled">
+              {results.map((product) => (
+                <SearchResultRow
+                  key={product.id}
+                  product={product}
+                  onAdd={() => handleAddProduct(product)}
+                  adding={addingId === product.id}
+                />
+              ))}
+              {/* Custom item fallback at bottom of results */}
+              {query.trim().length > 0 && (
+                <Pressable
+                  style={({ pressed }) => [styles.customRow, pressed && styles.resultRowPressed]}
+                  onPress={handleAddCustom}
+                  disabled={addingId === 'custom'}
+                >
+                  <Text style={styles.customText}>
+                    Add <Text style={styles.customBold}>"{query.trim()}"</Text> as custom item
+                  </Text>
+                  {addingId === 'custom' ? (
+                    <LoadingSpinner color={theme.textSecondary} />
+                  ) : (
+                    <View style={[styles.addChip, styles.addChipOutline]}>
+                      <Text style={[styles.addChipText, styles.addChipOutlineText]}>+ Add</Text>
+                    </View>
+                  )}
+                </Pressable>
+              )}
+            </ScrollView>
+          ) : query.trim().length > 0 ? (
+            /* No results — offer custom add */
             <Pressable
-              style={[styles.confirmAddBtn, !name.trim() && styles.confirmAddDisabled]}
-              onPress={handleAdd}
-              disabled={adding || !name.trim()}
+              style={({ pressed }) => [styles.noResultRow, pressed && styles.resultRowPressed]}
+              onPress={handleAddCustom}
+              disabled={addingId === 'custom'}
             >
-              {adding ? (
-                <LoadingSpinner color="#fff" />
+              <View style={styles.resultBody}>
+                <Text style={styles.resultName}>"{query.trim()}"</Text>
+                <Text style={styles.resultMeta}>Custom item · tap to add</Text>
+              </View>
+              {addingId === 'custom' ? (
+                <LoadingSpinner color={theme.primary} />
               ) : (
-                <Text style={styles.confirmAddText}>Add item</Text>
+                <View style={styles.addChip}>
+                  <Text style={styles.addChipText}>+ Add</Text>
+                </View>
               )}
             </Pressable>
-          </View>
+          ) : (
+            <Text style={styles.searchHint}>Start typing to search the product catalogue</Text>
+          )}
         </View>
       ) : (
         <Pressable
@@ -256,6 +320,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadow.sm,
   },
+  compareBtnDisabled: { backgroundColor: theme.border },
   pressed: { opacity: 0.85 },
   compareBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 
@@ -278,7 +343,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     ...shadow.sm,
   },
-  itemRowPressed: { opacity: 0.75 },
   checkbox: { padding: 2 },
   checkboxBox: {
     width: 24,
@@ -302,13 +366,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface,
     borderTopWidth: 1,
     borderTopColor: theme.border,
-    padding: spacing.md,
-    gap: spacing.sm,
+    maxHeight: 380,
     ...shadow.md,
   },
-  addInput: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  searchInput: {
+    flex: 1,
     borderWidth: 1.5,
-    borderColor: theme.border,
+    borderColor: theme.primary,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
@@ -316,33 +388,72 @@ const styles = StyleSheet.create({
     color: theme.textPrimary,
     backgroundColor: theme.background,
   },
-  addRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
-  qtyInput: { width: 70 },
-  unitRow: { flex: 1, flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
-  unitChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: theme.border,
-    backgroundColor: theme.background,
-  },
-  unitChipActive: { backgroundColor: theme.primary, borderColor: theme.primary },
-  unitChipText: { fontSize: 13, color: theme.textSecondary, fontWeight: '500' },
-  unitChipTextActive: { color: '#fff' },
-  addActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
-  cancelAddBtn: { paddingVertical: 10, paddingHorizontal: spacing.md },
-  cancelAddText: { color: theme.textSecondary, fontSize: 15 },
-  confirmAddBtn: {
-    backgroundColor: theme.primary,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.lg,
-    minWidth: 100,
+  closeBtn: { padding: 4 },
+  closeBtnText: { color: theme.textSecondary, fontSize: 18 },
+
+  searchLoading: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
-  confirmAddDisabled: { backgroundColor: theme.border },
-  confirmAddText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  searchLoadingText: { fontSize: 14, color: theme.textSecondary },
+
+  searchHint: {
+    fontSize: 14,
+    color: theme.textHint,
+    textAlign: 'center',
+    padding: spacing.lg,
+  },
+
+  results: { maxHeight: 280 },
+
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+    gap: spacing.sm,
+    backgroundColor: theme.surface,
+  },
+  resultRowPressed: { backgroundColor: theme.background },
+  resultBody: { flex: 1 },
+  resultName: { fontSize: 15, fontWeight: '500', color: theme.textPrimary },
+  resultMeta: { fontSize: 12, color: theme.textSecondary, marginTop: 2 },
+
+  addChip: {
+    backgroundColor: theme.primary,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+  },
+  addChipText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  addChipOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.primary },
+  addChipOutlineText: { color: theme.primary },
+
+  customRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: theme.primaryLight,
+  },
+  customText: { flex: 1, fontSize: 14, color: theme.textSecondary },
+  customBold: { fontWeight: '700', color: theme.textPrimary },
+
+  noResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: spacing.md,
+    padding: spacing.md,
+    backgroundColor: theme.primaryLight,
+    borderRadius: radius.md,
+    gap: spacing.sm,
+  },
 
   fab: {
     position: 'absolute',
