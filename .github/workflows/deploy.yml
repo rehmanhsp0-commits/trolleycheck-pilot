@@ -96,7 +96,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway production
-        run: railway up --service api --environment production --detach
+        run: railway up --service believable-intuition --environment production --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
