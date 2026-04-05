@@ -20,15 +20,54 @@ No scaffolding. No starter kit. Just a spec and Claude Code.
 
 ---
 
+## What TrolleyCheck Does
+
+Australians overspend on groceries because prices vary significantly between Coles, Woolworths, IGA and ALDI — but comparing them manually takes time. TrolleyCheck solves this in three steps.
+
+### Step 1 — Build your list
+
+The user opens the app and creates a grocery list for the week. They can:
+
+- Search the product catalogue (90+ items across 9 categories — Dairy, Bread, Meat, Produce, Pantry, Drinks, Household, Cleaning, Confectionery)
+- Add products directly with one tap, or type a custom item not in the catalogue
+- Set quantity and unit for each item
+- Tick items off as they shop
+
+The app remembers their list week to week and carries over any unticked items automatically.
+
+### Step 2 — Compare the full basket
+
+With one tap on **Compare prices**, the app sends the full list to the API, which:
+
+1. Looks up the current price of every item at Coles and Woolworths
+2. Calculates the total cost at each store
+3. Identifies which store is cheaper overall and by how much
+4. Returns an item-level breakdown so the user can see where each price difference comes from
+
+The result screen shows the total at both stores, the saving amount, and a colour-coded list of every item with its price at each supermarket.
+
+### Step 3 — Split shop for maximum saving
+
+The **Split Shop** feature goes further. Instead of saying "go to Woolworths", it asks: *what if you split your shop between both stores?*
+
+The optimiser calculates:
+
+- Which items are cheaper at Coles → buy those at Coles
+- Which items are cheaper at Woolworths → buy those at Woolworths
+- The combined saving vs. doing the full shop at the more expensive store
+
+The result is two lists — one for each store — with the total saving displayed. Users can share either list directly from the app.
+
+### Dashboard — savings over time
+
+The Dashboard screen shows the user their savings history across past weeks, helping them understand their spending patterns and reinforce the habit of comparing before they shop.
+
+---
+
 ## What Was Built
 
-**TrolleyCheck** is an Australian grocery price comparison app. Users build a weekly shopping list, then the app tells them:
-
-- Which supermarket is cheaper for the whole basket
-- Which items to buy where for maximum saving (split-shop optimiser)
-- Their item-level price breakdown across stores
-
 ### Stores supported (pilot)
+
 | Store | Brand colour |
 |---|---|
 | Coles | Red `#E31837` |
@@ -37,15 +76,16 @@ No scaffolding. No starter kit. Just a spec and Claude Code.
 | ALDI | Blue `#004A97` |
 
 ### Screens delivered
+
 | Screen | Purpose |
 |---|---|
 | Login / Register | Supabase Auth JWT flow |
-| This Week | Weekly shopping list with carry-over |
+| This Week | Weekly shopping list with automatic carry-over |
 | Browse | Search 90+ products across 9 categories |
-| My Lists | Create, manage, delete grocery lists |
-| List Detail | Add items, tick off, compare prices |
+| My Lists | Create, manage and delete grocery lists |
+| List Detail | Add items, tick off, see item counts |
 | Price Comparison | Full basket total — Coles vs Woolworths |
-| Split Shop | Per-item store routing for max saving |
+| Split Shop | Per-item store routing for maximum saving |
 | Dashboard | Savings history and spend trends |
 
 ---
@@ -86,10 +126,7 @@ GitHub Issue raised (TC-n)
 feature/TC-n-description branch from develop
     │
     ▼
-Claude Code implements
-    │
-    ▼
-TypeScript check + Jest tests pass
+Claude Code implements + TypeScript check + tests pass
     │
     ▼
 PR → develop → CI pipeline runs
@@ -101,22 +138,22 @@ Reviewed and merged
 Release PR: develop → main → Railway auto-deploys
 ```
 
-### GitHub Issues raised across the build
+### GitHub Issues across the build
 
 | # | Story / Bug | Type | Status |
 |---|---|---|---|
 | TC-1 | User registration | Story | Closed |
-| TC-2 | User login | Story | Open (done in code) |
-| TC-3 | Token refresh | Story | Open (done in code) |
-| TC-4 | Logout and account deletion | Story | Open (done in code) |
-| TC-5 | Grocery list CRUD | Story | Open (done in code) |
-| TC-6 | Grocery item CRUD | Story | Open (done in code) |
-| TC-7 | Item reordering | Story | Open (done in code) |
+| TC-2 | User login | Story | Closed |
+| TC-3 | Token refresh | Story | Closed |
+| TC-4 | Logout and account deletion | Story | Closed |
+| TC-5 | Grocery list CRUD | Story | Closed |
+| TC-6 | Grocery item CRUD | Story | Closed |
+| TC-7 | Item reordering | Story | Closed |
 | TC-8 | Duplicate list | Story | Closed |
 | TC-9 | Compare basket prices | Story | Closed |
 | TC-10 | Item-level price breakdown | Story | Closed |
 | TC-11 | Split-shop optimiser | Story | Closed |
-| TC-12 | Product catalogue + seed | Story | Closed |
+| TC-12 | Product catalogue + seed data | Story | Closed |
 | TC-13 | Dockerfile + docker-compose | Story | Closed |
 | TC-14 | GitHub Actions CI/CD | Story | Closed |
 | TC-15 | React Native mobile app | Story | Closed |
@@ -126,7 +163,7 @@ Release PR: develop → main → Railway auto-deploys
 | #47 | Keyboard overlaps add-item panel | Bug | Closed |
 | #48 | Tab bar overlaps Android gesture bar | Bug | Closed |
 
-**Total commits:** 62 | **Merge commits:** 15 | **Branches used:** 18
+**Total commits:** 62 &nbsp;|&nbsp; **Merge commits:** 15 &nbsp;|&nbsp; **Branches used:** 18
 
 ---
 
@@ -139,9 +176,9 @@ Security was mandated in the spec as non-negotiable. Every rule was implemented 
 | Authentication | Supabase JWT — every API route protected |
 | Token lifecycle | 15 min access tokens, 7 day refresh, full revocation on logout |
 | Input validation | Zod schemas on every request body and query param |
-| Row-level security | All DB queries scoped to `userId` — users cannot access other users' data |
+| Row-level security | All DB queries scoped to `userId` — users cannot see each other's data |
 | No PII in logs | pino logger — user IDs only, never email or names |
-| Rate limiting | Applied to all endpoints via Express middleware |
+| Rate limiting | Applied to all endpoints |
 | Dependency audit | `npm audit --audit-level=high` runs on every CI build |
 | Secrets management | Zero hardcoded values — all config via environment variables |
 | SQL injection | Impossible — Prisma ORM only, no raw queries |
@@ -155,29 +192,29 @@ Security was mandated in the spec as non-negotiable. Every rule was implemented 
 
 **8 test suites · 122 tests · 0 failures**
 
-| Metric | Coverage |
-|---|---|
-| Statements | **88.4%** |
-| Functions | **83.9%** |
-| Lines | **89.3%** |
-| Branches | 66.9% |
+| Metric | Result | Target |
+|---|---|---|
+| Statements | **88.4%** | 80% |
+| Functions | **83.9%** | 80% |
+| Lines | **89.3%** | 80% |
+| Branches | 66.9% | 60% |
 
-> Target was 80% statements minimum. Delivered 88%.
+> Delivered 8–9% above the 80% statement minimum.
 
 ### What is tested
 
-| Suite | Tests | Covers |
-|---|---|---|
-| `auth.test.ts` | Register, login, refresh, logout, delete account, error paths | |
-| `lists.test.ts` | CRUD, ownership checks, 401/404 paths | |
-| `items.test.ts` | Add, update, delete, toggle, reorder items | |
-| `compare.test.ts` | Full basket comparison, cheaper store logic, edge cases | |
-| `split.test.ts` | Split-shop routing, savings calculation | |
-| `products.test.ts` | Search, category filter, store price filter | |
-| `duplicate.test.ts` | List duplication with items | |
-| `health.test.ts` | DB and cache health endpoint | |
+| Suite | Covers |
+|---|---|
+| `auth.test.ts` | Register, login, refresh, logout, delete account, all error paths |
+| `lists.test.ts` | CRUD, ownership enforcement, 401/404 responses |
+| `items.test.ts` | Add, update, delete, toggle checked, reorder |
+| `compare.test.ts` | Full basket comparison, cheaper store logic, edge cases |
+| `split.test.ts` | Split-shop routing algorithm, savings calculation |
+| `products.test.ts` | Search by name, category filter, store price filter |
+| `duplicate.test.ts` | List duplication including all items |
+| `health.test.ts` | DB and Redis cache health endpoint |
 
-Tests run against mocked Prisma and Redis — no database required in CI. Every test uses authenticated requests with JWT middleware fully exercised.
+Tests run against mocked Prisma and Redis — no live database required in CI. Every test uses authenticated requests with the full JWT middleware exercised.
 
 ---
 
@@ -194,7 +231,7 @@ Push to feature/** or fix/**
   └─────────────────────────────────────────────┘
         │  All pass?
         ▼
-   PR → develop (code review)
+   PR → develop (code review gate)
         │
         ▼
    PR → main
@@ -203,28 +240,28 @@ Push to feature/** or fix/**
    Railway auto-deploy (Sydney)
         │
         ▼
-   Live API: trolleycheck-pilot-production.up.railway.app
+   Live: trolleycheck-pilot-production.up.railway.app
 ```
 
-**Path filters** prevent mobile-only UI changes from triggering the API pipeline — keeping Railway deploys clean and unaffected by frontend fixes.
+Path filters prevent mobile-only UI changes from triggering the API pipeline — Railway deploys are never affected by frontend-only fixes.
 
 ---
 
 ## What Claude Code Did
 
-Claude Code was not used as a code generator. It was used as a **senior engineer pair** that:
+Claude Code was used as a senior engineering pair — not a code generator:
 
 - Read the full spec before writing a single line
 - Raised GitHub issues before starting each story
-- Wrote TypeScript with strict mode — zero `any` escapes
-- Wrote tests alongside the code, not after
+- Wrote TypeScript in strict mode — zero `any` escapes
+- Wrote tests alongside the implementation, not after
 - Caught its own TypeScript errors before committing
-- Followed the branching strategy without being reminded
-- Debugged CI failures by reading actual error output
-- Fixed React Navigation architecture bugs caused by nested navigator design
-- Tracked and enforced Azure migration rules across every file it touched
+- Followed the branching strategy on every story
+- Debugged CI failures by reading actual error output, not guessing
+- Fixed React Navigation architecture issues and mobile keyboard/safe-area bugs
+- Enforced Azure migration rules across every file it touched
 
-**Every file in this repo was written by Claude Code based on the spec and conversation prompts — no manual coding.**
+**Every file in this repo was written by Claude Code based on the spec and user prompts — no manual coding.**
 
 ---
 
@@ -232,12 +269,12 @@ Claude Code was not used as a code generator. It was used as a **senior engineer
 
 | Item | Status |
 |---|---|
-| EAS Build (shareable APK) | Ready to configure — Expo account needed |
-| Real store price data | Phase 2 — scraping or data partnership |
-| Push notifications | Out of scope for pilot |
+| EAS Build — shareable APK/IPA | Ready — Expo account needed |
+| Real store price data | Phase 2 — data partnership or scraping |
+| Push notifications — price alerts | Out of scope for pilot |
 | Azure migration | Terraform drafted, 7 migration rules already enforced |
-| App Store / Play Store | Requires EAS + developer accounts |
-| Household sharing | Out of scope for pilot |
+| App Store / Play Store listing | Requires EAS + developer accounts |
+| Household sharing / collaborative lists | Out of scope for pilot |
 
 ---
 
@@ -250,11 +287,12 @@ Claude Code was not used as a code generator. It was used as a **senior engineer
 | API endpoints | 25+ |
 | Test cases | 122 |
 | Statement coverage | 88.4% |
-| GitHub issues | 24 |
+| GitHub issues | 20 |
+| Branches | 18 |
 | CI pipeline jobs | 3 (lint/test, security, Docker) |
 | Stores in app | 4 (Coles, Woolworths, IGA, ALDI) |
 | Seed products | 90 across 9 categories |
-| Deployments | Railway (Sydney) — live |
+| Deployment | Railway Sydney — live |
 
 ---
 
