@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useListStore } from '../store/listStore';
+import { useAuthStore } from '../store/authStore';
 import { compareApi, productsApi, type CompareResult, type Product } from '../api/client';
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -550,6 +551,12 @@ const addStyles = StyleSheet.create({
 
 // ── Main screen ────────────────────────────────────────────────────────────────
 
+function displayName(email?: string | null) {
+  if (!email) return '';
+  const prefix = email.split('@')[0];
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+
 export function WeeklyListScreen({ navigation }: Props) {
   const {
     currentWeekList, carriedCount, carriedFrom,
@@ -557,6 +564,7 @@ export function WeeklyListScreen({ navigation }: Props) {
     fetchCurrentWeek, fetchItems,
     toggleItem, deleteItem,
   } = useListStore();
+  const user = useAuthStore(s => s.user);
 
   const [showAdd, setShowAdd] = useState(false);
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
@@ -618,6 +626,9 @@ export function WeeklyListScreen({ navigation }: Props) {
       <View style={styles.greenHeader}>
         <View style={styles.headerTop}>
           <View>
+            {user?.email ? (
+              <Text style={styles.headerGreeting}>Hey, {displayName(user.email)}</Text>
+            ) : null}
             <Text style={styles.headerWeekLabel}>This Week</Text>
             <Text style={styles.headerWeekName} numberOfLines={1}>{weekLabel}</Text>
           </View>
@@ -756,9 +767,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  headerWeekLabel: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
-  headerWeekName: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3, maxWidth: 220 },
+  headerGreeting: { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { fontSize: 30, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  headerWeekLabel: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
+  headerWeekName: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.8, maxWidth: 220 },
   historyBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: radius.full,

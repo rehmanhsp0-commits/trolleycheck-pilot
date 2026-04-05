@@ -132,7 +132,7 @@ function MainNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: theme.surface },
         headerTintColor: theme.primaryDark,
-        headerTitleStyle: { fontWeight: '700', color: theme.textPrimary },
+        headerTitleStyle: { fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5, fontSize: 17 },
         headerShadowVisible: false,
         contentStyle: { backgroundColor: theme.background },
         headerRight: () => <LogoutButton />,

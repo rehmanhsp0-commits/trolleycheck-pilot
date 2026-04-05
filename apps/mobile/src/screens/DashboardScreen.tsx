@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { compareApi, weeklyApi, type WeeklyHistoryItem } from '../api/client';
 import { useListStore } from '../store/listStore';
+import { useAuthStore } from '../store/authStore';
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -85,8 +86,15 @@ const statStyles = StyleSheet.create({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+function displayName(email?: string | null) {
+  if (!email) return null;
+  const prefix = email.split('@')[0];
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+
 export function DashboardScreen() {
   const { currentWeekList, weeklyHistory, fetchCurrentWeek, fetchWeeklyHistory } = useListStore();
+  const user = useAuthStore(s => s.user);
   const [loading, setLoading] = useState(true);
   const [weekSaving, setWeekSaving] = useState(0);
   const [weekTotal, setWeekTotal] = useState(0);
@@ -139,6 +147,9 @@ export function DashboardScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
+          {displayName(user?.email) && (
+            <Text style={styles.greeting}>{displayName(user?.email)}</Text>
+          )}
           <Text style={styles.heading}>Dashboard</Text>
           <Text style={styles.subheading}>{weeksTracked} weeks tracked</Text>
         </View>
@@ -225,7 +236,8 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.md, gap: spacing.md, paddingBottom: 100 },
 
   header: { paddingBottom: spacing.xs },
-  heading: { fontSize: 28, fontWeight: '800', color: theme.textPrimary, letterSpacing: -0.5 },
+  greeting: { fontSize: 12, fontWeight: '700', color: theme.textHint, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 },
+  heading: { fontSize: 32, fontWeight: '800', color: theme.textPrimary, letterSpacing: -1.2 },
   subheading: { fontSize: 13, color: theme.textSecondary, marginTop: 2 },
 
   sectionLabel: {
