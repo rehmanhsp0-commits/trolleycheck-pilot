@@ -1,9 +1,10 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,13 +14,16 @@ import { theme } from './src/constants/theme';
 
 import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
+import { WeeklyListScreen } from './src/screens/WeeklyListScreen';
+import { HistoryScreen } from './src/screens/HistoryScreen';
+import { BrowseScreen } from './src/screens/BrowseScreen';
 import { ListsScreen } from './src/screens/ListsScreen';
 import { ListDetailScreen } from './src/screens/ListDetailScreen';
 import { CompareScreen } from './src/screens/CompareScreen';
 import { SplitShopScreen } from './src/screens/SplitShopScreen';
 import type { List } from './src/api/client';
 
-// ── Navigation param types ────────────────────────────────────────────────────
+// ── Param types ───────────────────────────────────────────────────────────────
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -27,22 +31,77 @@ export type AuthStackParamList = {
 };
 
 export type MainStackParamList = {
+  Tabs: undefined;
+  ThisWeek: undefined;
+  History: undefined;
   Lists: undefined;
   ListDetail: { list: List };
   Compare: { listId: string };
   SplitShop: { listId: string };
 };
 
-// ── Stack navigators ──────────────────────────────────────────────────────────
+export type TabParamList = {
+  ThisWeek: undefined;
+  Browse: undefined;
+  AllLists: undefined;
+};
+
+// ── Navigators ────────────────────────────────────────────────────────────────
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainStack = createNativeStackNavigator<MainStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, staleTime: 30_000 },
   },
 });
+
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return (
+    <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+  );
+}
+
+function TabBar() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textHint,
+        tabBarLabelStyle: styles.tabLabel,
+      }}
+    >
+      <Tab.Screen
+        name="ThisWeek"
+        component={WeeklyListScreen}
+        options={{
+          tabBarLabel: 'This Week',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🛒" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="Browse"
+        component={BrowseScreen}
+        options={{
+          tabBarLabel: 'Browse',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🔍" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="AllLists"
+        component={ListsScreen}
+        options={{
+          tabBarLabel: 'Lists',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" focused={focused} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 function AuthNavigator() {
   return (
@@ -65,9 +124,14 @@ function MainNavigator() {
       }}
     >
       <MainStack.Screen
-        name="Lists"
-        component={ListsScreen}
+        name="Tabs"
+        component={TabBar}
         options={{ headerShown: false }}
+      />
+      <MainStack.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ title: 'History' }}
       />
       <MainStack.Screen
         name="ListDetail"
@@ -99,7 +163,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <NavigationContainer>
             <View style={{ flex: 1, backgroundColor: theme.background }}>
-              <StatusBar style="dark" backgroundColor={theme.background} />
+              <StatusBar style="light" backgroundColor={theme.primary} />
               {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
             </View>
           </NavigationContainer>
@@ -108,5 +172,18 @@ function App() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: theme.surface,
+    borderTopColor: theme.border,
+    height: 60,
+    paddingBottom: 6,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+});
 
 registerRootComponent(App);
