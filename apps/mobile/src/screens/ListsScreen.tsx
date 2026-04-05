@@ -16,11 +16,11 @@ import { useListStore } from '../store/listStore';
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { MainStackParamList, TabParamList } from '../../App';
+import type { ListsStackParamList } from '../../App';
 import type { List } from '../api/client';
 
 type Props = {
-  navigation: NativeStackNavigationProp<TabParamList, 'AllLists'> & NativeStackNavigationProp<MainStackParamList>;
+  navigation: NativeStackNavigationProp<ListsStackParamList, 'AllListsHome'>;
 };
 
 function ListCard({
