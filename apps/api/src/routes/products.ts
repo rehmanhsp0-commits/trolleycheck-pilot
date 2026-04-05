@@ -38,7 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
           ? { where: { store: { equals: store, mode: 'insensitive' } } }
           : true,
         },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      orderBy: [{ popularity: 'desc' }, { category: 'asc' }, { name: 'asc' }],
     });
 
     logger.info({ userId: req.user!.id, count: products.length, category, q }, 'Products retrieved');

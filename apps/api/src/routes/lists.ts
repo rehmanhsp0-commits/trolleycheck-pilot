@@ -6,6 +6,7 @@ import { CreateListSchema, UpdateListSchema } from '../schemas/list.schema.js';
 import { CreateItemSchema, UpdateItemSchema, ReorderItemsSchema } from '../schemas/item.schema.js';
 import { getPrisma } from '../lib/prisma.js';
 import { logger } from '../lib/logger.js';
+import { getISOWeek, getWeekStart, formatWeekRange } from '../lib/weekUtils.js';
 
 const router = Router();
 
@@ -346,7 +347,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { id: listId } = req.params;
-      const { name, quantity, unit, notes } = req.body;
+      const { name, quantity, unit, notes, productId, category } = req.body;
       const userId = req.user!.id;
 
       const prisma = getPrisma();
@@ -381,10 +382,20 @@ router.post(
           quantity,
           unit,
           notes,
-          checked: false, // New items start as unchecked
+          checked: false,
           position: nextPosition,
+          ...(productId ? { productId } : {}),
+          ...(category ? { category } : {}),
         },
       });
+
+      // Increment product popularity when added from catalogue
+      if (productId) {
+        await prisma.product.update({
+          where: { id: productId },
+          data: { popularity: { increment: 1 } },
+        }).catch(() => {}); // non-critical
+      }
 
       logger.info(
         {
@@ -711,6 +722,118 @@ router.delete('/:id/items/:itemId', async (req: Request, res: Response) => {
       message: 'Failed to delete item',
       statusCode: 500,
     });
+  }
+});
+
+// ── Weekly list endpoints ─────────────────────────────────────────────────────
+
+/**
+ * GET /lists/week/current
+ * Get (or auto-create) the weekly list for the current ISO week.
+ * If a previous week's list exists and the current week has no list yet,
+ * carries all unchecked items forward automatically.
+ */
+router.get('/week/current', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const prisma = getPrisma();
+
+    const now = new Date();
+    const weekNumber = getISOWeek(now);
+    const weekStart = getWeekStart(now);
+    const weekName = `Week ${weekNumber} · ${formatWeekRange(weekStart)}`;
+
+    // Try to find existing list for this week
+    const existing = await prisma.list.findFirst({
+      where: { userId, weekNumber },
+      include: { items: { orderBy: { position: 'asc' } } },
+    });
+
+    if (existing) {
+      return res.status(200).json({ list: existing, carried: false });
+    }
+
+    // Find the most recent previous weekly list to carry items forward
+    const previous = await prisma.list.findFirst({
+      where: { userId, isWeeklyList: true, weekNumber: { lt: weekNumber } },
+      orderBy: { weekNumber: 'desc' },
+      include: { items: { orderBy: { position: 'asc' } } },
+    });
+
+    // Create this week's list, carrying forward all items from last week
+    const newList = await prisma.$transaction(async (tx) => {
+      const list = await tx.list.create({
+        data: {
+          name: weekName,
+          userId,
+          isWeeklyList: true,
+          weekNumber,
+          weekStartDate: weekStart,
+        },
+      });
+
+      if (previous && previous.items.length > 0) {
+        await tx.item.createMany({
+          data: previous.items.map((item, idx) => ({
+            listId: list.id,
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            notes: item.notes,
+            checked: false, // reset checked state each week
+            position: idx + 1,
+            productId: item.productId,
+            category: item.category,
+          })),
+        });
+      }
+
+      return tx.list.findFirst({
+        where: { id: list.id },
+        include: { items: { orderBy: { position: 'asc' } } },
+      });
+    });
+
+    logger.info({ userId, weekNumber, carried: previous?.items.length ?? 0 }, 'Weekly list created');
+
+    return res.status(201).json({
+      list: newList,
+      carried: previous ? previous.items.length : 0,
+      carriedFrom: previous ? { weekNumber: previous.weekNumber, name: previous.name } : null,
+    });
+  } catch (err: any) {
+    logger.error({ err }, 'Weekly list error');
+    return res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to get weekly list', statusCode: 500 });
+  }
+});
+
+/**
+ * GET /lists/week/history
+ * Get all previous weekly lists (most recent first), without items.
+ */
+router.get('/week/history', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const prisma = getPrisma();
+    const now = new Date();
+    const currentWeek = getISOWeek(now);
+
+    const history = await prisma.list.findMany({
+      where: { userId, isWeeklyList: true, weekNumber: { lt: currentWeek } },
+      orderBy: { weekNumber: 'desc' },
+      include: { items: { select: { id: true, checked: true, category: true } } },
+    });
+
+    const result = history.map((l) => ({
+      ...l,
+      itemCount: l.items.length,
+      checkedCount: l.items.filter((i) => i.checked).length,
+    }));
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    logger.error({ err }, 'Weekly history error');
+    return res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to get history', statusCode: 500 });
   }
 });
 

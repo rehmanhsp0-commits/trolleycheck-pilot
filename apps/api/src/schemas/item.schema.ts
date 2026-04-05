@@ -11,6 +11,8 @@ export const CreateItemSchema = z.object({
   quantity: z.number().positive('Quantity must be positive').optional(),
   unit: z.enum(VALID_UNITS, { errorMap: () => ({ message: 'Unit must be one of: kg, g, L, mL, each' }) }).optional(),
   notes: z.string().max(500, 'Notes too long').optional(),
+  productId: z.string().optional(),
+  category: z.string().max(50).optional(),
 });
 
 export type CreateItemRequest = z.infer<typeof CreateItemSchema>;
