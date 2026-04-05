@@ -16,11 +16,11 @@ import { compareApi, productsApi, type CompareResult, type Product } from '../ap
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '../../App';
+import type { MainStackParamList, TabParamList } from '../../App';
 import type { Item } from '../api/client';
 
 type Props = {
-  navigation: NativeStackNavigationProp<MainStackParamList, 'ThisWeek'>;
+  navigation: NativeStackNavigationProp<MainStackParamList>;
 };
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -611,8 +611,8 @@ export function WeeklyListScreen({ navigation }: Props) {
     if (!compareResult) return {};
     const found = compareResult.items.find(i => i.name.toLowerCase() === itemName.toLowerCase());
     return {
-      fm: found?.freshmart?.unitPrice,
-      vg: found?.valuegrocer?.unitPrice,
+      fm: found?.coles?.unitPrice,
+      vg: found?.woolworths?.unitPrice,
     };
   }, [compareResult]);
 
