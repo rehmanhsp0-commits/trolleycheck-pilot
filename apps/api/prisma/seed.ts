@@ -5,6 +5,16 @@ const connectionString = (process.env.DATABASE_URL || '').replace('?pgbouncer=tr
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  'dairy':       '🥛',
+  'bread':       '🍞',
+  'meat':        '🥩',
+  'fruit & veg': '🥦',
+  'pantry':      '🥫',
+  'drinks':      '🥤',
+  'household':   '🧴',
+};
+
 type ProductSeed = {
   name: string;
   category: string;
@@ -91,23 +101,17 @@ async function main() {
   console.log('Seeding product catalogue...');
 
   for (const p of products) {
-    const product = await prisma.product.upsert({
-      where: { id: p.name }, // will fail — use findFirst+create pattern
-      update: {},
-      create: {
-        name: p.name,
-        category: p.category,
-        unit: p.unit,
-        active: true,
-      },
-    }).catch(async () => {
-      // upsert by name not supported directly — use createMany-style
-      const existing = await prisma.product.findFirst({ where: { name: p.name } });
-      if (existing) return existing;
-      return prisma.product.create({
-        data: { name: p.name, category: p.category, unit: p.unit, active: true },
-      });
-    });
+    const emoji = CATEGORY_EMOJI[p.category] ?? '';
+
+    const existing = await prisma.product.findFirst({ where: { name: p.name } });
+    const product = existing
+      ? await prisma.product.update({
+          where: { id: existing.id },
+          data: { category: p.category, unit: p.unit, categoryEmoji: emoji, active: true },
+        })
+      : await prisma.product.create({
+          data: { name: p.name, category: p.category, categoryEmoji: emoji, unit: p.unit, active: true },
+        });
 
     await prisma.price.upsert({
       where: { productId_store: { productId: product.id, store: 'FreshMart' } },
@@ -122,7 +126,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${products.length} products with FreshMart and ValueGrocer prices.`);
+  console.log(`Seeded ${products.length} products with emoji categories.`);
 }
 
 main()
