@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  # ── 1. Lint and test ────────────────────────────────────────────────────────
+  # ── 1. Lint and test — runs on all branches ─────────────────────────────────
   test:
     name: Lint and Test
     runs-on: ubuntu-latest
@@ -35,11 +35,8 @@ jobs:
 
       - name: Test with coverage
         run: npm run test:ci
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
-  # ── 2. Security audit ───────────────────────────────────────────────────────
+  # ── 2. Security audit — runs on all branches ────────────────────────────────
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -62,7 +59,7 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
-  # ── 3. Build Docker image ───────────────────────────────────────────────────
+  # ── 3. Build Docker image — runs on all branches ────────────────────────────
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
@@ -84,23 +81,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 4. Deploy to staging — disabled until staging environment is configured ──
-  # deploy-staging:
-  #   name: Deploy to Staging
-  #   runs-on: ubuntu-latest
-  #   needs: [build]
-  #   if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-  #   environment: staging
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install Railway CLI
-  #       run: npm install -g @railway/cli
-  #     - name: Deploy to Railway staging
-  #       run: railway up --service api --environment staging --detach
-  #       env:
-  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-  # ── 5. Deploy to production (main branch) ───────────────────────────────────
+  # ── 4. Deploy to production — main branch only ──────────────────────────────
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -118,6 +99,22 @@ jobs:
         run: railway up --service api --environment production --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ── Staging deploy — add when staging environment is ready ──────────────────
+  # deploy-staging:
+  #   name: Deploy to Staging
+  #   runs-on: ubuntu-latest
+  #   needs: [build]
+  #   if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+  #   environment: staging
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install Railway CLI
+  #       run: npm install -g @railway/cli
+  #     - name: Deploy to Railway staging
+  #       run: railway up --service api --environment staging --detach
+  #       env:
+  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   # ── Azure deploy — uncomment when migrating from Railway ────────────────────
   # deploy-azure:
