@@ -214,8 +214,8 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: theme.surface,
     borderTopColor: theme.border,
-    height: 60,
-    paddingBottom: 6,
+    paddingBottom: 8,
+    paddingTop: 6,
   },
   tabLabel: { fontSize: 11, fontWeight: '600' },
 });
