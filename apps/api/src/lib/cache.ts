@@ -3,7 +3,7 @@ import { logger } from './logger.js';
 
 let redisClient: RedisClientType | null = null;
 
-const REDIS_ENABLED = !!process.env.REDIS_URL;
+const REDIS_ENABLED = !!process.env.REDIS_URL && process.env.REDIS_URL.trim().length > 0;
 
 /**
  * Get or create a Redis client. Returns null if Redis is not configured.
@@ -15,7 +15,7 @@ async function getRedisClient(): Promise<RedisClientType | null> {
   redisClient = createClient({
     url: process.env.REDIS_URL,
     socket: {
-      reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+      reconnectStrategy: false,
     },
   }) as RedisClientType;
 
