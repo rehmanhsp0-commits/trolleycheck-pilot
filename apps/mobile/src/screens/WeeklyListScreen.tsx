@@ -264,6 +264,8 @@ function AddPanel({
     { key: 'pantry', label: 'Pantry', emoji: '🥫' },
     { key: 'drinks', label: 'Drinks', emoji: '🥤' },
     { key: 'household', label: 'Home', emoji: '🧴' },
+    { key: 'cleaning', label: 'Cleaning', emoji: '🧹' },
+    { key: 'confectionery', label: 'Confectionary', emoji: '🍫' },
   ];
 
   useEffect(() => {
@@ -323,8 +325,16 @@ function AddPanel({
     }
   };
 
-  const fmPrice = (p: Product) => p.prices.find(x => x.store === 'Coles')?.amount;
-  const vgPrice = (p: Product) => p.prices.find(x => x.store === 'Woolworths')?.amount;
+  const STORE_BRANDS: Record<string, { label: string; bg: string }> = {
+    'Coles':      { label: 'Coles',   bg: '#E31837' },
+    'Woolworths': { label: 'Woolies', bg: '#007B40' },
+    'IGA':        { label: 'IGA',     bg: '#EF5A0E' },
+    'ALDI':       { label: 'ALDI',    bg: '#004A97' },
+  };
+  const getStorePrices = (p: Product) =>
+    ['Coles', 'Woolworths', 'IGA', 'ALDI']
+      .map(s => ({ store: s, amount: p.prices.find(x => x.store === s)?.amount }))
+      .filter(x => x.amount !== undefined) as { store: string; amount: number }[];
 
   return (
     <View style={addStyles.panel}>
@@ -383,9 +393,7 @@ function AddPanel({
           style={addStyles.results}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item: product }) => {
-            const fm = fmPrice(product);
-            const vg = vgPrice(product);
-            const best = fm !== undefined && vg !== undefined ? Math.min(fm, vg) : fm ?? vg;
+            const storePrices = getStorePrices(product);
             return (
               <Pressable
                 style={({ pressed }) => [addStyles.resultRow, pressed && addStyles.resultRowPressed]}
@@ -396,12 +404,19 @@ function AddPanel({
                 <View style={addStyles.resultInfo}>
                   <Text style={addStyles.resultName} numberOfLines={1}>{product.name}</Text>
                   <View style={addStyles.resultPrices}>
-                    {fm !== undefined && (
-                      <Text style={addStyles.fmPrice}>FM ${fm.toFixed(2)}</Text>
-                    )}
-                    {vg !== undefined && (
-                      <Text style={addStyles.vgPrice}>VG ${vg.toFixed(2)}</Text>
-                    )}
+                    {storePrices.map(sp => {
+                      const brand = STORE_BRANDS[sp.store];
+                      return (
+                        <View key={sp.store} style={{ flexDirection: 'row', borderRadius: 4, overflow: 'hidden', marginRight: 4 }}>
+                          <View style={{ backgroundColor: brand.bg, paddingHorizontal: 4, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#fff' }}>{brand.label}</Text>
+                          </View>
+                          <View style={{ backgroundColor: '#EFEFEF', paddingHorizontal: 4, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '600', color: '#333' }}>${sp.amount.toFixed(2)}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
                 {addingId === product.id ? (

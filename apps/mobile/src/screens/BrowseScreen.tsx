@@ -8,6 +8,28 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+const STORE_BRANDS: Record<string, { label: string; bg: string; text: string }> = {
+  'Coles':      { label: 'Coles',   bg: '#E31837', text: '#fff' },
+  'Woolworths': { label: 'Woolies', bg: '#007B40', text: '#fff' },
+  'IGA':        { label: 'IGA',     bg: '#EF5A0E', text: '#fff' },
+  'ALDI':       { label: 'ALDI',    bg: '#004A97', text: '#fff' },
+};
+
+function StorePricePill({ store, amount }: { store: string; amount: number }) {
+  const brand = STORE_BRANDS[store];
+  if (!brand) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 4, overflow: 'hidden', marginRight: 4, marginTop: 3 }}>
+      <View style={{ backgroundColor: brand.bg, paddingHorizontal: 5, paddingVertical: 2 }}>
+        <Text style={{ fontSize: 10, fontWeight: '700', color: brand.text }}>{brand.label}</Text>
+      </View>
+      <View style={{ backgroundColor: '#F0F0F0', paddingHorizontal: 5, paddingVertical: 2 }}>
+        <Text style={{ fontSize: 10, fontWeight: '600', color: '#333' }}>${amount.toFixed(2)}</Text>
+      </View>
+    </View>
+  );
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { productsApi, type Product } from '../api/client';
 import { useListStore } from '../store/listStore';
@@ -22,6 +44,8 @@ const CATEGORIES = [
   { key: 'pantry', label: 'Pantry', emoji: '🥫' },
   { key: 'drinks', label: 'Drinks', emoji: '🥤' },
   { key: 'household', label: 'Home', emoji: '🧴' },
+  { key: 'cleaning', label: 'Cleaning', emoji: '🧹' },
+  { key: 'confectionery', label: 'Confect.', emoji: '🍫' },
 ];
 
 export function BrowseScreen() {
@@ -128,9 +152,10 @@ export function BrowseScreen() {
             </View>
           }
           renderItem={({ item: product }) => {
-            const fm = product.prices.find(p => p.store === 'Coles')?.amount;
-            const vg = product.prices.find(p => p.store === 'Woolworths')?.amount;
             const added = addedIds.has(product.id);
+            const storePrices = ['Coles', 'Woolworths', 'IGA', 'ALDI']
+              .map(s => ({ store: s, amount: product.prices.find(p => p.store === s)?.amount }))
+              .filter(x => x.amount !== undefined) as { store: string; amount: number }[];
 
             return (
               <View style={styles.productCard}>
@@ -138,12 +163,9 @@ export function BrowseScreen() {
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
                   <View style={styles.priceRow}>
-                    {fm !== undefined && (
-                      <Text style={styles.fmPrice}>FM ${fm.toFixed(2)}</Text>
-                    )}
-                    {vg !== undefined && (
-                      <Text style={styles.vgPrice}>VG ${vg.toFixed(2)}</Text>
-                    )}
+                    {storePrices.map(sp => (
+                      <StorePricePill key={sp.store} store={sp.store} amount={sp.amount} />
+                    ))}
                   </View>
                 </View>
                 <Pressable
@@ -224,9 +246,7 @@ const styles = StyleSheet.create({
   productEmoji: { fontSize: 26, width: 36, textAlign: 'center' },
   productInfo: { flex: 1 },
   productName: { fontSize: 15, fontWeight: '600', color: theme.textPrimary },
-  priceRow: { flexDirection: 'row', gap: 10, marginTop: 3 },
-  fmPrice: { fontSize: 13, fontWeight: '700', color: theme.primary },
-  vgPrice: { fontSize: 13, color: theme.textSecondary },
+  priceRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 },
 
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
