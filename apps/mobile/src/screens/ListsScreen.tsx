@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -15,49 +16,57 @@ import { useListStore } from '../store/listStore';
 import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { MainStackParamList } from '../../App';
+import type { ListsStackParamList } from '../../App';
 import type { List } from '../api/client';
 
 type Props = {
-  navigation: NativeStackNavigationProp<MainStackParamList, 'Lists'>;
+  navigation: NativeStackNavigationProp<ListsStackParamList, 'AllListsHome'>;
 };
 
 function ListCard({
   list,
   onPress,
-  onLongPress,
+  onDelete,
 }: {
   list: List;
   onPress: () => void;
-  onLongPress: () => void;
+  onDelete: () => void;
 }) {
-  const itemCount = list.items?.length ?? 0;
+  const itemCount = list.itemCount ?? list.items?.length ?? 0;
   const updatedAt = new Date(list.updatedAt);
   const dateStr = updatedAt.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
 
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-    >
-      <View style={styles.cardIcon}>
-        <Text style={styles.cardIconText}>🛒</Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardName} numberOfLines={1}>{list.name}</Text>
-        <Text style={styles.cardMeta}>
-          {itemCount} {itemCount === 1 ? 'item' : 'items'} · {dateStr}
-        </Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
+    <View style={styles.card}>
+      <Pressable
+        style={({ pressed }) => [styles.cardMain, pressed && styles.cardPressed]}
+        onPress={onPress}
+      >
+        <View style={styles.cardIcon}>
+          <Text style={styles.cardIconText}>🛒</Text>
+        </View>
+        <View style={styles.cardBody}>
+          <Text style={styles.cardName} numberOfLines={1}>{list.name}</Text>
+          <Text style={styles.cardMeta}>
+            {itemCount} {itemCount === 1 ? 'item' : 'items'} · {dateStr}
+          </Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+      <Pressable
+        style={styles.deleteBtn}
+        onPress={onDelete}
+        hitSlop={8}
+      >
+        <Text style={styles.deleteBtnText}>🗑</Text>
+      </Pressable>
+    </View>
   );
 }
 
 export function ListsScreen({ navigation }: Props) {
   const { logout } = useAuthStore();
-  const { lists, isLoadingLists, fetchLists, createList, deleteList, duplicateList } = useListStore();
+  const { lists, isLoadingLists, fetchLists, createList, deleteList } = useListStore();
   const [newListName, setNewListName] = useState('');
   const [showInput, setShowInput] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -78,37 +87,6 @@ export function ListsScreen({ navigation }: Props) {
     } finally {
       setCreating(false);
     }
-  };
-
-  const handleLongPress = (list: List) => {
-    Alert.alert(list.name, 'What would you like to do?', [
-      {
-        text: 'Rename',
-        onPress: () => {
-          Alert.prompt(
-            'Rename list',
-            '',
-            (name) => { if (name?.trim()) useListStore.getState().updateList(list.id, name.trim()); },
-            'plain-text',
-            list.name,
-          );
-        },
-      },
-      {
-        text: 'Duplicate',
-        onPress: () => duplicateList(list.id),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert('Delete list', `Delete "${list.name}"? This cannot be undone.`, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: () => deleteList(list.id) },
-          ]),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
   };
 
   return (
@@ -170,7 +148,18 @@ export function ListsScreen({ navigation }: Props) {
                 useListStore.getState().selectList(item);
                 navigation.navigate('ListDetail', { list: item });
               }}
-              onLongPress={() => handleLongPress(item)}
+              onDelete={() => {
+                if (Platform.OS === 'web') {
+                  if (window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+                    deleteList(item.id);
+                  }
+                } else {
+                  Alert.alert('Delete list', `Delete "${item.name}"? This cannot be undone.`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => deleteList(item.id) },
+                  ]);
+                }
+              }}
             />
           )}
           ListEmptyComponent={
@@ -248,11 +237,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.surface,
     borderRadius: radius.md,
+    ...shadow.sm,
+    overflow: 'hidden',
+  },
+  cardMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: spacing.md,
     gap: spacing.md,
-    ...shadow.sm,
   },
   cardPressed: { opacity: 0.75 },
+  deleteBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: theme.border,
+  },
+  deleteBtnText: { fontSize: 18 },
   cardIcon: {
     width: 44,
     height: 44,

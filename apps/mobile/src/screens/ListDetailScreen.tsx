@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,12 +17,12 @@ import { radius, shadow, spacing, theme } from '../constants/theme';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import type { MainStackParamList } from '../../App';
+import type { ListsStackParamList, MainStackParamList } from '../../App';
 import type { Item, Product } from '../api/client';
 
 type Props = {
-  navigation: NativeStackNavigationProp<MainStackParamList, 'ListDetail'>;
-  route: RouteProp<MainStackParamList, 'ListDetail'>;
+  navigation: NativeStackNavigationProp<ListsStackParamList, 'ListDetail'>;
+  route: RouteProp<ListsStackParamList, 'ListDetail'>;
 };
 
 // ── Item row ──────────────────────────────────────────────────────────────────
@@ -169,10 +171,15 @@ export function ListDetailScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
       {/* Compare CTA */}
       <Pressable
         style={({ pressed }) => [styles.compareBtn, pressed && styles.pressed, items.length === 0 && styles.compareBtnDisabled]}
-        onPress={() => navigation.navigate('Compare', { listId: list.id })}
+        onPress={() => navigation.getParent<NativeStackNavigationProp<MainStackParamList>>()?.navigate('Compare', { listId: list.id })}
         disabled={items.length === 0}
       >
         <Text style={styles.compareBtnText}>
@@ -305,6 +312,7 @@ export function ListDetailScreen({ navigation, route }: Props) {
           <Text style={styles.fabText}>+ Add item</Text>
         </Pressable>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

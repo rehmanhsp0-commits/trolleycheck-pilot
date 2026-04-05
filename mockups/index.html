@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrolleyCheck — Design Mockups</title>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+/* ── Themes ── */
+:root {
+  --primary: #1D9E75;
+  --primary-dark: #085041;
+  --primary-light: #E8F7F2;
+  --secondary: #EF9F27;
+  --secondary-light: #FEF6E7;
+  --danger: #E24B4A;
+  --danger-light: #FDEEED;
+  --bg: #F1EFE8;
+  --surface: #FFFFFF;
+  --text: #2C2C2A;
+  --text-sec: #5F5E5A;
+  --text-hint: #888780;
+  --border: #D3D1C7;
+  --shadow: 0 2px 8px rgba(44,44,42,.09);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+[data-theme="ocean"] {
+  --primary: #1A6FD4;
+  --primary-dark: #0A3F7A;
+  --primary-light: #E8F0FB;
+  --secondary: #F5A623;
+  --secondary-light: #FEF6E7;
+  --bg: #F0F4F8;
+  --surface: #FFFFFF;
+  --text: #1A2332;
+  --text-sec: #4A5568;
+  --text-hint: #8A9BB0;
+  --border: #CBD5E0;
+}
+
+[data-theme="dark"] {
+  --primary: #34D399;
+  --primary-dark: #10B981;
+  --primary-light: #064E3B;
+  --secondary: #FBBF24;
+  --secondary-light: #451A03;
+  --danger: #F87171;
+  --danger-light: #450A0A;
+  --bg: #111827;
+  --surface: #1F2937;
+  --text: #F9FAFB;
+  --text-sec: #9CA3AF;
+  --text-hint: #6B7280;
+  --border: #374151;
+  --shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+[data-theme="warm"] {
+  --primary: #C05621;
+  --primary-dark: #7B341E;
+  --primary-light: #FEEBC8;
+  --secondary: #D69E2E;
+  --secondary-light: #FAF089;
+  --bg: #FFFAF0;
+  --surface: #FFFFFF;
+  --text: #2D3748;
+  --text-sec: #718096;
+  --text-hint: #A0AEC0;
+  --border: #E2D9C5;
+}
+
+[data-theme="purple"] {
+  --primary: #7C3AED;
+  --primary-dark: #4C1D95;
+  --primary-light: #EDE9FE;
+  --secondary: #F59E0B;
+  --secondary-light: #FEF3C7;
+  --bg: #F5F3FF;
+  --surface: #FFFFFF;
+  --text: #1E1B4B;
+  --text-sec: #5B21B6;
+  --text-hint: #8B5CF6;
+  --border: #DDD6FE;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: #111;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 0;
+}
+.sidebar-logo { padding: 0 16px 20px; font-size: 15px; font-weight: 700; color: #fff; border-bottom: 1px solid #333; margin-bottom: 16px; letter-spacing: -0.3px; }
+.sidebar-logo span { color: #1D9E75; }
+.sidebar-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #666; padding: 0 16px 8px; }
+.nav-btn {
+  display: block; width: 100%; text-align: left; background: none; border: none; color: #aaa;
+  padding: 9px 16px; font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.nav-btn:hover { background: #222; color: #fff; }
+.nav-btn.active { background: #1D9E75; color: #fff; font-weight: 600; }
+.sidebar-sep { height: 1px; background: #333; margin: 12px 0; }
+.theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 16px; }
+.theme-dot {
+  height: 32px; border-radius: 6px; cursor: pointer; border: 2px solid transparent;
+  font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.theme-dot:hover { border-color: #fff; }
+.theme-dot.active { border-color: #fff; box-shadow: 0 0 0 2px #fff4; }
+.theme-dot[data-t="green"]  { background: #1D9E75; color: #fff; }
+.theme-dot[data-t="ocean"]  { background: #1A6FD4; color: #fff; }
+.theme-dot[data-t="dark"]   { background: #1F2937; color: #34D399; }
+.theme-dot[data-t="warm"]   { background: #C05621; color: #fff; }
+.theme-dot[data-t="purple"] { background: #7C3AED; color: #fff; }
+.sidebar-note { font-size: 11px; color: #555; padding: 12px 16px 0; line-height: 1.5; }
+
+/* ── Main area ── */
+.main { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+.main-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, #2a2a2a, #111); }
+
+/* ── Phone frame ── */
+.phone-wrap { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 24px; }
+.phone {
+  width: 375px;
+  height: 780px;
+  background: var(--bg);
+  border-radius: 44px;
+  overflow: hidden;
+  box-shadow: 0 0 0 8px #222, 0 0 0 10px #333, 0 32px 64px rgba(0,0,0,.8);
+  position: relative;
+  flex-shrink: 0;
+}
+.phone-notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 28px; background: #111; border-radius: 0 0 18px 18px; z-index: 100;
+}
+.phone-screen { height: 100%; overflow: hidden; position: relative; }
+
+/* ── Screens ── */
+.screen { display: none; height: 100%; flex-direction: column; background: var(--bg); }
+.screen.active { display: flex; }
+
+/* ── Status bar ── */
+.status-bar { height: 44px; padding: 0 20px; display: flex; align-items: flex-end; padding-bottom: 8px; flex-shrink: 0; background: var(--bg); }
+.status-time { font-size: 13px; font-weight: 600; color: var(--text); margin-right: auto; }
+.status-icons { display: flex; gap: 4px; align-items: center; }
+.status-icons span { font-size: 11px; color: var(--text); font-weight: 500; }
+
+/* ── Common components ── */
+.btn-primary {
+  background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm);
+  padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%;
+  box-shadow: var(--shadow); transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .9; }
+.btn-primary:disabled { background: var(--border); }
+.input {
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; font-size: 15px; color: var(--text); background: var(--bg);
+  width: 100%; outline: none;
+}
+.input:focus { border-color: var(--primary); }
+.input::placeholder { color: var(--text-hint); }
+.label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-sec); margin-bottom: 6px; display: block; }
+.card { background: var(--surface); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow); }
+.chip {
+  display: inline-flex; align-items: center; padding: 6px 12px; border-radius: var(--radius-full);
+  border: 1.5px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-sec);
+  background: var(--bg); cursor: pointer;
+}
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.fab {
+  position: absolute; bottom: 28px; right: 20px;
+  background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full);
+  padding: 14px 20px; font-size: 15px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2); display: flex; align-items: center; gap: 6px;
+}
+.scroll { overflow-y: auto; flex: 1; }
+.scroll::-webkit-scrollbar { width: 3px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Annotations panel ── */
+.notes-panel {
+  width: 260px; background: #1a1a1a; border-radius: 12px; padding: 16px;
+  border: 1px solid #333; align-self: flex-start; margin-top: 40px;
+}
+.notes-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
+.note-item { margin-bottom: 12px; }
+.note-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-bottom: 4px; text-transform: uppercase; }
+.note-tag.ux { background: #1D9E7533; color: #1D9E75; }
+.note-tag.inspired { background: #EF9F2733; color: #EF9F27; }
+.note-tag.alt { background: #7C3AED33; color: #a78bfa; }
+.note-text { font-size: 12px; color: #aaa; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: LOGIN
+═══════════════════════════════════════════════════════ */
+#screen-login .login-body { padding: 32px 24px; display: flex; flex-direction: column; flex: 1; justify-content: center; gap: 0; }
+#screen-login .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 36px; }
+#screen-login .logo-icon {
+  width: 72px; height: 72px; background: var(--primary); border-radius: 20px;
+  display: flex; align-items: center; justify-content: center; font-size: 34px;
+  margin-bottom: 12px; box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+#screen-login .logo-name { font-size: 28px; font-weight: 800; color: var(--primary-dark); letter-spacing: -0.5px; }
+#screen-login .logo-tag { font-size: 14px; color: var(--text-sec); margin-top: 4px; }
+#screen-login .form-card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); }
+#screen-login .form-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+#screen-login .field { margin-bottom: 16px; }
+#screen-login .password-row { position: relative; }
+#screen-login .eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; cursor: pointer; }
+#screen-login .signin-btn { margin-top: 8px; }
+#screen-login .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+#screen-login .divider-line { flex: 1; height: 1px; background: var(--border); }
+#screen-login .divider-text { font-size: 12px; color: var(--text-hint); }
+#screen-login .social-row { display: flex; gap: 10px; }
+#screen-login .social-btn {
+  flex: 1; padding: 11px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+  background: var(--surface); font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+#screen-login .signup-row { text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-sec); }
+#screen-login .link { color: var(--primary); font-weight: 600; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: LISTS HOME
+═══════════════════════════════════════════════════════ */
+#screen-lists .header {
+  padding: 8px 20px 12px; background: var(--bg);
+  display: flex; align-items: center; justify-content: space-between;
+}
+#screen-lists .header-left { display: flex; flex-direction: column; }
+#screen-lists .greeting { font-size: 13px; color: var(--text-sec); }
+#screen-lists .heading { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+#screen-lists .avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--primary);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px;
+}
+#screen-lists .search-bar {
+  margin: 0 16px 12px; padding: 10px 14px; background: var(--surface);
+  border-radius: var(--radius-md); border: 1.5px solid var(--border);
+  font-size: 14px; color: var(--text-hint); display: flex; align-items: center; gap: 8px;
+}
+#screen-lists .recent-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-hint); padding: 0 20px 10px; }
+#screen-lists .list-card {
+  margin: 0 16px 10px; padding: 14px 16px; background: var(--surface);
+  border-radius: var(--radius-md); box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  transition: transform .1s;
+}
+#screen-lists .list-card:hover { transform: scale(1.01); }
+#screen-lists .list-icon {
+  width: 44px; height: 44px; background: var(--primary-light);
+  border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+#screen-lists .list-info { flex: 1; min-width: 0; }
+#screen-lists .list-name { font-size: 16px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#screen-lists .list-meta { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+#screen-lists .list-arrow { color: var(--border); font-size: 20px; }
+#screen-lists .saving-badge {
+  background: var(--secondary-light); color: var(--secondary);
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full);
+}
+#screen-lists .bottom-tabs {
+  height: 60px; background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-around; padding-bottom: 4px; flex-shrink: 0;
+}
+#screen-lists .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+#screen-lists .tab-icon { font-size: 20px; }
+#screen-lists .tab-label { font-size: 10px; color: var(--text-hint); font-weight: 500; }
+#screen-lists .tab.active .tab-label { color: var(--primary); font-weight: 700; }
+#screen-lists .tab.active .tab-icon { filter: none; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: LIST DETAIL
+═══════════════════════════════════════════════════════ */
+#screen-detail .nav-bar {
+  height: 52px; background: var(--surface); padding: 0 16px;
+  display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+#screen-detail .back-btn { font-size: 22px; color: var(--primary-dark); cursor: pointer; }
+#screen-detail .nav-title { font-size: 17px; font-weight: 700; color: var(--text); flex: 1; }
+#screen-detail .compare-bar {
+  margin: 12px 16px; padding: 13px 16px; background: var(--primary);
+  border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; box-shadow: var(--shadow);
+}
+#screen-detail .compare-bar-text { font-size: 14px; font-weight: 700; color: #fff; }
+#screen-detail .compare-bar-badge { background: rgba(255,255,255,.25); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--radius-full); }
+#screen-detail .section-head { padding: 4px 20px 8px; display: flex; align-items: center; justify-content: space-between; }
+#screen-detail .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-hint); }
+#screen-detail .item-row {
+  margin: 0 16px 8px; padding: 12px 14px; background: var(--surface);
+  border-radius: var(--radius-md); box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 10px;
+}
+#screen-detail .checkbox {
+  width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+#screen-detail .checkbox.checked { background: var(--primary); border-color: var(--primary); color: #fff; font-size: 13px; font-weight: 700; }
+#screen-detail .item-text { flex: 1; }
+#screen-detail .item-name { font-size: 15px; font-weight: 500; color: var(--text); }
+#screen-detail .item-name.done { text-decoration: line-through; color: var(--text-hint); }
+#screen-detail .item-qty { font-size: 12px; color: var(--text-sec); }
+#screen-detail .item-del { color: var(--text-hint); font-size: 14px; padding: 4px; cursor: pointer; }
+#screen-detail .search-panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  border-radius: 20px 20px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,.12);
+  padding: 16px;
+}
+#screen-detail .search-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
+#screen-detail .search-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+#screen-detail .search-input-wrap { flex: 1; position: relative; }
+#screen-detail .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 15px; }
+#screen-detail .search-inp {
+  width: 100%; padding: 11px 14px 11px 34px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--primary); background: var(--bg); font-size: 15px; color: var(--text); outline: none;
+}
+#screen-detail .cancel-text { color: var(--text-sec); font-size: 14px; cursor: pointer; font-weight: 500; }
+#screen-detail .result-row {
+  display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 10px;
+}
+#screen-detail .result-emoji { width: 34px; height: 34px; background: var(--primary-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+#screen-detail .result-info { flex: 1; }
+#screen-detail .result-name { font-size: 14px; font-weight: 500; color: var(--text); }
+#screen-detail .result-cat { font-size: 11px; color: var(--text-hint); }
+#screen-detail .add-btn { background: var(--primary); color: #fff; border: none; border-radius: var(--radius-full); padding: 5px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: COMPARE RESULTS
+═══════════════════════════════════════════════════════ */
+#screen-compare .nav-bar {
+  height: 52px; background: var(--surface); padding: 0 16px;
+  display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+#screen-compare .back-btn { font-size: 22px; color: var(--primary-dark); cursor: pointer; }
+#screen-compare .nav-title { font-size: 17px; font-weight: 700; color: var(--text); flex: 1; }
+#screen-compare .winner-banner {
+  margin: 12px 16px; padding: 16px; background: var(--primary);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow); color: #fff;
+}
+#screen-compare .winner-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .8; margin-bottom: 4px; }
+#screen-compare .winner-store { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+#screen-compare .winner-saving { font-size: 14px; opacity: .9; margin-top: 4px; }
+#screen-compare .store-tabs { display: flex; margin: 0 16px 12px; gap: 8px; }
+#screen-compare .store-tab {
+  flex: 1; padding: 12px; background: var(--surface); border-radius: var(--radius-md);
+  box-shadow: var(--shadow); text-align: center; cursor: pointer; border: 2px solid transparent;
+}
+#screen-compare .store-tab.active { border-color: var(--primary); }
+#screen-compare .store-name { font-size: 13px; font-weight: 700; color: var(--text); }
+#screen-compare .store-total { font-size: 20px; font-weight: 800; color: var(--text); margin-top: 2px; }
+#screen-compare .store-total.cheaper { color: var(--primary); }
+#screen-compare .compare-row {
+  margin: 0 16px 8px; padding: 12px 14px; background: var(--surface);
+  border-radius: var(--radius-md); box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
+}
+#screen-compare .cmp-icon { font-size: 20px; width: 32px; text-align: center; }
+#screen-compare .cmp-info { flex: 1; }
+#screen-compare .cmp-name { font-size: 14px; font-weight: 500; color: var(--text); }
+#screen-compare .cmp-prices { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+#screen-compare .cmp-badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-full); }
+#screen-compare .cmp-badge.save { background: var(--primary-light); color: var(--primary); }
+#screen-compare .cmp-badge.same { background: var(--border); color: var(--text-hint); }
+#screen-compare .split-cta {
+  margin: 12px 16px; padding: 14px; background: var(--secondary);
+  border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
+}
+#screen-compare .split-cta-text { font-size: 14px; font-weight: 700; color: #fff; }
+#screen-compare .split-cta-arrow { color: #fff; font-size: 18px; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: SPLIT SHOP
+═══════════════════════════════════════════════════════ */
+#screen-split .nav-bar {
+  height: 52px; background: var(--surface); padding: 0 16px;
+  display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+#screen-split .back-btn { font-size: 22px; color: var(--primary-dark); cursor: pointer; }
+#screen-split .nav-title { font-size: 17px; font-weight: 700; color: var(--text); flex: 1; }
+#screen-split .verdict {
+  margin: 12px 16px; padding: 16px; border-radius: var(--radius-lg); display: flex; align-items: center; gap: 12px;
+}
+#screen-split .verdict.worth { background: var(--primary-light); }
+#screen-split .verdict.not-worth { background: var(--secondary-light); }
+#screen-split .verdict-icon { font-size: 32px; }
+#screen-split .verdict-body { flex: 1; }
+#screen-split .verdict-title { font-size: 15px; font-weight: 700; color: var(--text); }
+#screen-split .verdict-sub { font-size: 12px; color: var(--text-sec); margin-top: 3px; line-height: 1.4; }
+#screen-split .threshold-row { padding: 0 16px 12px; display: flex; align-items: center; gap: 8px; }
+#screen-split .threshold-label { font-size: 13px; color: var(--text-sec); font-weight: 500; }
+#screen-split .store-block {
+  margin: 0 16px 12px; background: var(--surface); border-radius: var(--radius-md);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+#screen-split .store-block-head {
+  padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border); border-left: 4px solid var(--primary);
+}
+#screen-split .store-block-head.vm { border-left-color: var(--secondary); }
+#screen-split .store-block-name { flex: 1; font-size: 15px; font-weight: 700; color: var(--text); }
+#screen-split .store-block-total { font-size: 17px; font-weight: 800; color: var(--primary); }
+#screen-split .store-block-total.vm { color: var(--secondary); }
+#screen-split .split-item { padding: 10px 14px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+#screen-split .split-item:last-child { border-bottom: none; }
+#screen-split .split-item-name { font-size: 14px; color: var(--text); }
+#screen-split .split-item-price { font-size: 14px; font-weight: 600; color: var(--text); }
+#screen-split .total-row {
+  margin: 0 16px 16px; padding: 14px; background: var(--surface);
+  border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;
+  box-shadow: var(--shadow);
+}
+#screen-split .total-label { font-size: 15px; font-weight: 700; color: var(--text); }
+#screen-split .total-amount { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN: REGISTER
+═══════════════════════════════════════════════════════ */
+#screen-register .reg-body { padding: 28px 24px; display: flex; flex-direction: column; flex: 1; justify-content: center; }
+#screen-register .reg-back { font-size: 22px; color: var(--primary-dark); cursor: pointer; margin-bottom: 20px; display: inline-block; }
+#screen-register .reg-title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 4px; }
+#screen-register .reg-sub { font-size: 14px; color: var(--text-sec); margin-bottom: 28px; }
+#screen-register .field { margin-bottom: 16px; }
+#screen-register .password-hint { font-size: 12px; color: var(--text-hint); margin-top: 6px; }
+#screen-register .strength-bar { height: 3px; border-radius: 2px; background: var(--border); margin-top: 8px; overflow: hidden; }
+#screen-register .strength-fill { height: 100%; border-radius: 2px; }
+#screen-register .terms { font-size: 12px; color: var(--text-hint); text-align: center; margin-top: 16px; line-height: 1.5; }
+#screen-register .terms a { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">🛒 <span>Trolley</span>Check<br><small style="font-weight:400;color:#666;font-size:11px">Design Mockups v0.1</small></div>
+
+  <div class="sidebar-section">Screens</div>
+  <button class="nav-btn active" onclick="showScreen('login')">🔑 Login</button>
+  <button class="nav-btn" onclick="showScreen('register')">📝 Register</button>
+  <button class="nav-btn" onclick="showScreen('lists')">🏠 My Lists</button>
+  <button class="nav-btn" onclick="showScreen('detail')">📋 List Detail</button>
+  <button class="nav-btn" onclick="showScreen('compare')">⚖️ Compare</button>
+  <button class="nav-btn" onclick="showScreen('split')">✂️ Split Shop</button>
+
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-section" style="margin-bottom:10px">Themes</div>
+  <div class="theme-grid">
+    <div class="theme-dot active" data-t="green" onclick="setTheme('green')">🌿 Forest</div>
+    <div class="theme-dot" data-t="ocean" onclick="setTheme('ocean')">🌊 Ocean</div>
+    <div class="theme-dot" data-t="dark" onclick="setTheme('dark')">🌙 Dark</div>
+    <div class="theme-dot" data-t="warm" onclick="setTheme('warm')">🍂 Warm</div>
+    <div class="theme-dot" data-t="purple" onclick="setTheme('purple')">💜 Purple</div>
+  </div>
+
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-note">
+    Click screens to navigate.<br>Switch themes to compare.<br><br>
+    Inspired by: Woolworths, Coles, Bring!, AnyList
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="main-bg"></div>
+  <div class="phone-wrap">
+
+    <!-- Phone -->
+    <div class="phone" id="phone">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+
+        <!-- ══ LOGIN ══ -->
+        <div class="screen active" id="screen-login">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="login-body scroll">
+            <div class="logo-wrap">
+              <div class="logo-icon">🛒</div>
+              <div class="logo-name">TrolleyCheck</div>
+              <div class="logo-tag">Save more every shop</div>
+            </div>
+            <div class="form-card">
+              <div class="form-title">Welcome back</div>
+              <div class="field">
+                <label class="label">Email</label>
+                <input class="input" type="email" placeholder="you@example.com">
+              </div>
+              <div class="field">
+                <label class="label">Password</label>
+                <div class="password-row">
+                  <input class="input" type="password" placeholder="Your password">
+                  <span class="eye-btn">👁️</span>
+                </div>
+              </div>
+              <button class="btn-primary signin-btn" onclick="showScreen('lists')">Log in</button>
+              <div class="divider"><div class="divider-line"></div><span class="divider-text">or continue with</span><div class="divider-line"></div></div>
+              <div class="social-row">
+                <button class="social-btn">🍎 Apple</button>
+                <button class="social-btn">🌐 Google</button>
+              </div>
+            </div>
+            <div class="signup-row">Don't have an account? <span class="link" onclick="showScreen('register')">Sign up</span></div>
+          </div>
+        </div>
+
+        <!-- ══ REGISTER ══ -->
+        <div class="screen" id="screen-register">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="reg-body scroll">
+            <span class="reg-back" onclick="showScreen('login')">‹</span>
+            <div class="reg-title">Create account</div>
+            <div class="reg-sub">Start saving on your grocery shop</div>
+            <div class="field">
+              <label class="label">Email</label>
+              <input class="input" type="email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+              <label class="label">Password</label>
+              <input class="input" type="password" placeholder="Min. 8 characters">
+              <div class="strength-bar"><div class="strength-fill" style="width:60%;background:var(--secondary)"></div></div>
+              <div class="password-hint">Use 8+ characters with a mix of letters and numbers</div>
+            </div>
+            <div class="field">
+              <label class="label">Confirm password</label>
+              <input class="input" type="password" placeholder="Re-enter password">
+            </div>
+            <button class="btn-primary" style="margin-top:8px" onclick="showScreen('lists')">Create account</button>
+            <div class="terms">By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a></div>
+          </div>
+        </div>
+
+        <!-- ══ LISTS HOME ══ -->
+        <div class="screen" id="screen-lists">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="header">
+            <div class="header-left">
+              <span class="greeting">Good morning 👋</span>
+              <span class="heading">My Lists</span>
+            </div>
+            <div class="avatar">S</div>
+          </div>
+          <div class="search-bar">🔍 <span>Search lists…</span></div>
+          <div class="recent-label">Recent</div>
+          <div class="scroll">
+            <div class="list-card" onclick="showScreen('detail')">
+              <div class="list-icon">🛒</div>
+              <div class="list-info">
+                <div class="list-name">Weekly shop</div>
+                <div class="list-meta">12 items · Updated today</div>
+              </div>
+              <span class="saving-badge">Save $4.80</span>
+              <span class="list-arrow">›</span>
+            </div>
+            <div class="list-card" onclick="showScreen('detail')">
+              <div class="list-icon">🥩</div>
+              <div class="list-info">
+                <div class="list-name">BBQ weekend</div>
+                <div class="list-meta">7 items · Updated 2 days ago</div>
+              </div>
+              <span class="list-arrow">›</span>
+            </div>
+            <div class="list-card" onclick="showScreen('detail')">
+              <div class="list-icon">🥗</div>
+              <div class="list-info">
+                <div class="list-name">Healthy week</div>
+                <div class="list-meta">5 items · Updated 5 days ago</div>
+              </div>
+              <span class="list-arrow">›</span>
+            </div>
+            <div class="list-card" onclick="showScreen('detail')">
+              <div class="list-icon">🎉</div>
+              <div class="list-info">
+                <div class="list-name">Party supplies</div>
+                <div class="list-meta">9 items · Updated 1 week ago</div>
+              </div>
+              <span class="saving-badge">Save $12.40</span>
+              <span class="list-arrow">›</span>
+            </div>
+          </div>
+          <div class="bottom-tabs">
+            <div class="tab active"><span class="tab-icon">🏠</span><span class="tab-label">Lists</span></div>
+            <div class="tab"><span class="tab-icon">🔍</span><span class="tab-label">Browse</span></div>
+            <div class="tab"><span class="tab-icon">📊</span><span class="tab-label">Savings</span></div>
+            <div class="tab"><span class="tab-icon">👤</span><span class="tab-label">Account</span></div>
+          </div>
+          <button class="fab" onclick="showScreen('detail')">＋ New list</button>
+        </div>
+
+        <!-- ══ LIST DETAIL ══ -->
+        <div class="screen" id="screen-detail" style="position:relative">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="nav-bar">
+            <span class="back-btn" onclick="showScreen('lists')">‹</span>
+            <span class="nav-title">Weekly shop</span>
+          </div>
+          <div class="compare-bar" onclick="showScreen('compare')">
+            <span class="compare-bar-text">⚖️ Compare prices</span>
+            <span class="compare-bar-badge">12 items</span>
+          </div>
+          <div class="section-head">
+            <span class="section-title">Items · 12</span>
+            <span style="font-size:12px;color:var(--text-hint)">4 ticked</span>
+          </div>
+          <div class="scroll" style="padding-bottom:80px">
+            <div class="item-row">
+              <div class="checkbox checked">✓</div>
+              <div class="item-text"><div class="item-name done">Full cream milk 2L</div><div class="item-qty">2 × each</div></div>
+              <span class="item-del">✕</span>
+            </div>
+            <div class="item-row">
+              <div class="checkbox checked">✓</div>
+              <div class="item-text"><div class="item-name done">Free range eggs 12pk</div><div class="item-qty">1 × each</div></div>
+              <span class="item-del">✕</span>
+            </div>
+            <div class="item-row">
+              <div class="checkbox"></div>
+              <div class="item-text"><div class="item-name">Sliced white bread</div><div class="item-qty">1 × each</div></div>
+              <span class="item-del">✕</span>
+            </div>
+            <div class="item-row">
+              <div class="checkbox"></div>
+              <div class="item-text"><div class="item-name">Cheddar cheese 500g</div><div class="item-qty">1 × each</div></div>
+              <span class="item-del">✕</span>
+            </div>
+            <div class="item-row">
+              <div class="checkbox"></div>
+              <div class="item-text"><div class="item-name">Chicken breast</div><div class="item-qty">1 × kg</div></div>
+              <span class="item-del">✕</span>
+            </div>
+            <div class="item-row">
+              <div class="checkbox"></div>
+              <div class="item-text"><div class="item-name">Basmati rice 1kg</div><div class="item-qty">1 × each</div></div>
+              <span class="item-del">✕</span>
+            </div>
+          </div>
+          <!-- Search panel -->
+          <div class="search-panel" id="search-panel" style="display:none">
+            <div class="search-handle"></div>
+            <div class="search-input-row">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input class="search-inp" placeholder="Search products…" oninput="filterResults(this.value)" id="search-inp">
+              </div>
+              <span class="cancel-text" onclick="closeSearch()">Cancel</span>
+            </div>
+            <div id="search-results">
+              <div class="result-row"><div class="result-emoji">🥛</div><div class="result-info"><div class="result-name">Full cream milk 2L</div><div class="result-cat">Dairy · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🥚</div><div class="result-info"><div class="result-name">Free range eggs 12pk</div><div class="result-cat">Dairy · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🍞</div><div class="result-info"><div class="result-name">Sliced white bread</div><div class="result-cat">Bakery · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🧀</div><div class="result-info"><div class="result-name">Cheddar cheese 500g</div><div class="result-cat">Dairy · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🍗</div><div class="result-info"><div class="result-name">Chicken breast</div><div class="result-cat">Meat · kg</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🍚</div><div class="result-info"><div class="result-name">Basmati rice 1kg</div><div class="result-cat">Pantry · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🥦</div><div class="result-info"><div class="result-name">Broccoli</div><div class="result-cat">Produce · each</div></div><button class="add-btn">+ Add</button></div>
+              <div class="result-row"><div class="result-emoji">🍎</div><div class="result-info"><div class="result-name">Pink lady apples</div><div class="result-cat">Produce · kg</div></div><button class="add-btn">+ Add</button></div>
+            </div>
+          </div>
+          <button class="fab" onclick="openSearch()" id="add-fab">＋ Add item</button>
+        </div>
+
+        <!-- ══ COMPARE ══ -->
+        <div class="screen" id="screen-compare">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="nav-bar">
+            <span class="back-btn" onclick="showScreen('detail')">‹</span>
+            <span class="nav-title">Price Comparison</span>
+          </div>
+          <div class="scroll" style="padding-bottom:16px">
+            <div class="winner-banner">
+              <div class="winner-label">Best value store</div>
+              <div class="winner-store">🟢 FreshMart</div>
+              <div class="winner-saving">You save $4.80 (8%) vs ValueGrocer</div>
+            </div>
+            <div class="store-tabs">
+              <div class="store-tab active">
+                <div class="store-name">🟢 FreshMart</div>
+                <div class="store-total cheaper">$56.40</div>
+              </div>
+              <div class="store-tab">
+                <div class="store-name">🟡 ValueGrocer</div>
+                <div class="store-total">$61.20</div>
+              </div>
+            </div>
+            <div style="padding:0 16px 8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-hint)">Item breakdown</div>
+            <div class="compare-row"><span class="cmp-icon">🥛</span><div class="cmp-info"><div class="cmp-name">Full cream milk 2L × 2</div><div class="cmp-prices">FM $3.40 vs VG $3.90</div></div><span class="cmp-badge save">Save $1.00</span></div>
+            <div class="compare-row"><span class="cmp-icon">🥚</span><div class="cmp-info"><div class="cmp-name">Free range eggs 12pk</div><div class="cmp-prices">FM $5.50 vs VG $5.50</div></div><span class="cmp-badge same">Same</span></div>
+            <div class="compare-row"><span class="cmp-icon">🍞</span><div class="cmp-info"><div class="cmp-name">Sliced white bread</div><div class="cmp-prices">FM $2.80 vs VG $3.20</div></div><span class="cmp-badge save">Save $0.40</span></div>
+            <div class="compare-row"><span class="cmp-icon">🧀</span><div class="cmp-info"><div class="cmp-name">Cheddar cheese 500g</div><div class="cmp-prices">FM $6.00 vs VG $7.20</div></div><span class="cmp-badge save">Save $1.20</span></div>
+            <div class="compare-row"><span class="cmp-icon">🍗</span><div class="cmp-info"><div class="cmp-name">Chicken breast 1kg</div><div class="cmp-prices">FM $9.00 vs VG $8.50</div></div><span class="cmp-badge same">VG cheaper</span></div>
+            <div class="compare-row"><span class="cmp-icon">🍚</span><div class="cmp-info"><div class="cmp-name">Basmati rice 1kg</div><div class="cmp-prices">FM $4.20 vs VG $4.20</div></div><span class="cmp-badge same">Same</span></div>
+            <div class="split-cta" onclick="showScreen('split')">
+              <span class="split-cta-text">✂️ See Split Shop plan</span>
+              <span class="split-cta-arrow">›</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ SPLIT SHOP ══ -->
+        <div class="screen" id="screen-split">
+          <div class="status-bar">
+            <span class="status-time">9:41</span>
+            <div class="status-icons"><span>●●●●</span><span>WiFi</span><span>🔋</span></div>
+          </div>
+          <div class="nav-bar">
+            <span class="back-btn" onclick="showScreen('compare')">‹</span>
+            <span class="nav-title">Split Shop</span>
+          </div>
+          <div class="scroll" style="padding-bottom:16px">
+            <div class="verdict worth">
+              <span class="verdict-icon">✅</span>
+              <div class="verdict-body">
+                <div class="verdict-title">Worth splitting — save $4.80</div>
+                <div class="verdict-sub">Buying from both stores saves more than your $2 threshold</div>
+              </div>
+            </div>
+            <div class="threshold-row">
+              <span class="threshold-label">Min saving:</span>
+              <span class="chip active">$2</span>
+              <span class="chip">$5</span>
+              <span class="chip">$10</span>
+              <span class="chip">$15</span>
+            </div>
+            <div class="store-block">
+              <div class="store-block-head">
+                <span style="font-size:18px">🟢</span>
+                <span class="store-block-name">Buy at FreshMart</span>
+                <span class="store-block-total">$47.90</span>
+              </div>
+              <div class="split-item"><span class="split-item-name">Full cream milk 2L × 2</span><span class="split-item-price">$6.80</span></div>
+              <div class="split-item"><span class="split-item-name">Sliced white bread</span><span class="split-item-price">$2.80</span></div>
+              <div class="split-item"><span class="split-item-name">Cheddar cheese 500g</span><span class="split-item-price">$6.00</span></div>
+              <div class="split-item"><span class="split-item-name">Basmati rice 1kg</span><span class="split-item-price">$4.20</span></div>
+              <div class="split-item"><span class="split-item-name">Free range eggs 12pk</span><span class="split-item-price">$5.50</span></div>
+            </div>
+            <div class="store-block">
+              <div class="store-block-head vm">
+                <span style="font-size:18px">🟡</span>
+                <span class="store-block-name">Buy at ValueGrocer</span>
+                <span class="store-block-total vm">$8.50</span>
+              </div>
+              <div class="split-item"><span class="split-item-name">Chicken breast 1kg</span><span class="split-item-price">$8.50</span></div>
+            </div>
+            <div class="total-row">
+              <span class="total-label">Total saving</span>
+              <span class="total-amount">$4.80</span>
+            </div>
+            <div style="margin:0 16px">
+              <button class="btn-primary">📤 Share split list</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /phone-screen -->
+    </div><!-- /phone -->
+
+    <!-- Annotations -->
+    <div class="notes-panel" id="notes-panel">
+      <div class="notes-title">Design Notes</div>
+      <div id="note-content"></div>
+    </div>
+
+  </div><!-- /phone-wrap -->
+</main>
+
+<script>
+const notes = {
+  login: [
+    { tag: 'inspired', label: 'Inspired by', text: 'Woolworths/Coles — centered logo, clean card form, social login options' },
+    { tag: 'ux', label: 'UX Pattern', text: 'Social login (Apple/Google) reduces friction for first-time users' },
+    { tag: 'alt', label: 'Alternative', text: 'Could skip social login for pilot to reduce scope' },
+  ],
+  register: [
+    { tag: 'inspired', label: 'Inspired by', text: 'Bring! app — minimal fields, password strength indicator' },
+    { tag: 'ux', label: 'UX Pattern', text: 'Progressive disclosure: only email + password, no name required' },
+    { tag: 'alt', label: 'Alternative', text: 'Could add a welcome illustration above the form' },
+  ],
+  lists: [
+    { tag: 'inspired', label: 'Inspired by', text: 'AnyList + Instacart — greeting header, bottom tab nav, saving badges on list cards' },
+    { tag: 'ux', label: 'UX Pattern', text: 'Savings badge on list card is the hero — users see value before opening' },
+    { tag: 'alt', label: 'Alternative', text: 'Current app has no bottom tabs — this adds Browse + Savings screens (future)' },
+  ],
+  detail: [
+    { tag: 'inspired', label: 'Inspired by', text: 'Woolworths app search sheet — bottom drawer slides up, product catalogue results' },
+    { tag: 'ux', label: 'UX Pattern', text: 'Search-first add: type product name → tap + Add. No form fields to fill.' },
+    { tag: 'alt', label: 'Alternative', text: 'Could group items by category (Produce, Dairy, Meat) like Bring! does' },
+  ],
+  compare: [
+    { tag: 'inspired', label: 'Inspired by', text: 'Instacart store comparison — winner banner at top, store price tabs, per-item breakdown' },
+    { tag: 'ux', label: 'UX Pattern', text: 'Winner highlighted in green immediately. Savings badges per item scannable at a glance.' },
+    { tag: 'alt', label: 'Alternative', text: 'Could add a "share comparison" button to send screenshot to partner' },
+  ],
+  split: [
+    { tag: 'ux', label: 'UX Pattern', text: 'Verdict + threshold chips let user adjust and instantly see if split is worth it' },
+    { tag: 'inspired', label: 'Inspired by', text: 'Recipe ingredient splitters — clear per-store shopping lists, share action' },
+    { tag: 'alt', label: 'Alternative', text: 'Could add a map view showing FreshMart vs ValueGrocer locations nearby' },
+  ],
+};
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.textContent.toLowerCase().includes(name) ||
+        (name === 'lists' && b.textContent.includes('Lists')) ||
+        (name === 'detail' && b.textContent.includes('Detail')) ||
+        (name === 'compare' && b.textContent.includes('Compare')) ||
+        (name === 'split' && b.textContent.includes('Split')) ||
+        (name === 'login' && b.textContent.includes('Login')) ||
+        (name === 'register' && b.textContent.includes('Register'))) {
+      b.classList.add('active');
+    }
+  });
+  renderNotes(name);
+}
+
+function renderNotes(screen) {
+  const items = notes[screen] || [];
+  const el = document.getElementById('note-content');
+  el.innerHTML = items.map(n => `
+    <div class="note-item">
+      <span class="note-tag ${n.tag}">${n.label}</span>
+      <div class="note-text">${n.text}</div>
+    </div>
+  `).join('');
+}
+
+function setTheme(t) {
+  document.getElementById('phone').setAttribute('data-theme', t === 'green' ? '' : t);
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+  document.querySelector(`.theme-dot[data-t="${t}"]`).classList.add('active');
+}
+
+function openSearch() {
+  document.getElementById('search-panel').style.display = 'block';
+  document.getElementById('add-fab').style.display = 'none';
+  document.getElementById('search-inp').focus();
+}
+function closeSearch() {
+  document.getElementById('search-panel').style.display = 'none';
+  document.getElementById('add-fab').style.display = 'flex';
+  document.getElementById('search-inp').value = '';
+  filterResults('');
+}
+
+const allProducts = [
+  { emoji:'🥛', name:'Full cream milk 2L', cat:'Dairy · each' },
+  { emoji:'🥚', name:'Free range eggs 12pk', cat:'Dairy · each' },
+  { emoji:'🍞', name:'Sliced white bread', cat:'Bakery · each' },
+  { emoji:'🧀', name:'Cheddar cheese 500g', cat:'Dairy · each' },
+  { emoji:'🍗', name:'Chicken breast', cat:'Meat · kg' },
+  { emoji:'🍚', name:'Basmati rice 1kg', cat:'Pantry · each' },
+  { emoji:'🥦', name:'Broccoli', cat:'Produce · each' },
+  { emoji:'🍎', name:'Pink lady apples', cat:'Produce · kg' },
+  { emoji:'🥕', name:'Carrots 1kg', cat:'Produce · each' },
+  { emoji:'🧴', name:'Shampoo 400mL', cat:'Personal care · each' },
+  { emoji:'🧼', name:'Dish soap 500mL', cat:'Cleaning · each' },
+  { emoji:'🫐', name:'Blueberries 125g', cat:'Produce · each' },
+];
+
+function filterResults(q) {
+  const el = document.getElementById('search-results');
+  const filtered = q ? allProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase())) : allProducts;
+  if (filtered.length === 0) {
+    el.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-hint);font-size:14px">
+      No products found.<br><button style="margin-top:10px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer">+ Add "${q}" as custom item</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(p => `
+    <div class="result-row">
+      <div class="result-emoji">${p.emoji}</div>
+      <div class="result-info"><div class="result-name">${p.name}</div><div class="result-cat">${p.cat}</div></div>
+      <button class="add-btn">+ Add</button>
+    </div>
+  `).join('');
+}
+
+// Init
+renderNotes('login');
+</script>
+</body>
+</html>

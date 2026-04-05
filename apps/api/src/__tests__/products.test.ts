@@ -39,15 +39,15 @@ const MILK = {
   id: 'prod-1', name: 'Milk', category: 'dairy', unit: 'L', active: true,
   createdAt: new Date(), updatedAt: new Date(),
   prices: [
-    { id: 'pr-1', store: 'FreshMart', amount: 2.5, currency: 'AUD', updatedAt: new Date() },
-    { id: 'pr-2', store: 'ValueGrocer', amount: 2.2, currency: 'AUD', updatedAt: new Date() },
+    { id: 'pr-1', store: 'Coles', amount: 2.5, currency: 'AUD', updatedAt: new Date() },
+    { id: 'pr-2', store: 'Woolworths', amount: 2.2, currency: 'AUD', updatedAt: new Date() },
   ],
 };
 
 const BREAD = {
   id: 'prod-2', name: 'White Bread', category: 'bread', unit: 'each', active: true,
   createdAt: new Date(), updatedAt: new Date(),
-  prices: [{ id: 'pr-3', store: 'FreshMart', amount: 3.0, currency: 'AUD', updatedAt: new Date() }],
+  prices: [{ id: 'pr-3', store: 'Coles', amount: 3.0, currency: 'AUD', updatedAt: new Date() }],
 };
 
 // ── TC-12: Product catalogue ───────────────────────────────────────────────
@@ -93,14 +93,14 @@ describe('GET /products (TC-12)', () => {
     expect(call.where.name).toMatchObject({ contains: 'milk', mode: 'insensitive' });
   });
 
-  it('filters prices by ?store=FreshMart', async () => {
+  it('filters prices by ?store=Coles', async () => {
     mockProductFindMany.mockResolvedValue([MILK]);
 
-    const res = await request(app).get('/products?store=FreshMart').set(AUTH);
+    const res = await request(app).get('/products?store=Coles').set(AUTH);
 
     expect(res.status).toBe(200);
     const call = mockProductFindMany.mock.calls[0][0];
-    expect(call.include.prices).toMatchObject({ where: { store: { equals: 'FreshMart', mode: 'insensitive' } } });
+    expect(call.include.prices).toMatchObject({ where: { store: { equals: 'Coles', mode: 'insensitive' } } });
   });
 
   it('returns 500 on db error', async () => {

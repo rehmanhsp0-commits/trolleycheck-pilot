@@ -17,7 +17,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#1D9E75"
       },
-      "package": "com.trolleycheck.pilot"
+      "package": "com.trolleycheck.pilot",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "extra": {
       "apiUrl": "http://localhost:3000"

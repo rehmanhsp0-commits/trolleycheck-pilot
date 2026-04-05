@@ -1,7 +1,15 @@
 import { create } from 'zustand';
-import { listsApi, type Item, type List } from '../api/client';
+import { listsApi, weeklyApi, type Item, type List, type WeeklyHistoryItem } from '../api/client';
 
 type ListState = {
+  // Weekly
+  currentWeekList: List | null;
+  carriedCount: number;
+  carriedFrom: { weekNumber: number; name: string } | null;
+  weeklyHistory: WeeklyHistoryItem[];
+  isLoadingWeek: boolean;
+
+  // Regular lists
   lists: List[];
   selectedList: List | null;
   items: Item[];
@@ -9,6 +17,11 @@ type ListState = {
   isLoadingItems: boolean;
   error: string | null;
 
+  // Weekly actions
+  fetchCurrentWeek: () => Promise<void>;
+  fetchWeeklyHistory: () => Promise<void>;
+
+  // List actions
   fetchLists: () => Promise<void>;
   selectList: (list: List) => void;
   fetchItems: (listId: string) => Promise<void>;
@@ -16,7 +29,7 @@ type ListState = {
   updateList: (id: string, name: string) => Promise<void>;
   deleteList: (id: string) => Promise<void>;
   duplicateList: (id: string) => Promise<void>;
-  addItem: (listId: string, item: { name: string; quantity: number; unit: string; notes?: string }) => Promise<void>;
+  addItem: (listId: string, item: { name: string; quantity: number; unit: string; notes?: string; productId?: string; category?: string }) => Promise<void>;
   updateItem: (listId: string, itemId: string, updates: Partial<Item>) => Promise<void>;
   deleteItem: (listId: string, itemId: string) => Promise<void>;
   toggleItem: (listId: string, itemId: string, checked: boolean) => Promise<void>;
@@ -24,12 +37,36 @@ type ListState = {
 };
 
 export const useListStore = create<ListState>((set, get) => ({
+  currentWeekList: null,
+  carriedCount: 0,
+  carriedFrom: null,
+  weeklyHistory: [],
+  isLoadingWeek: false,
   lists: [],
   selectedList: null,
   items: [],
   isLoadingLists: false,
   isLoadingItems: false,
   error: null,
+
+  fetchCurrentWeek: async () => {
+    set({ isLoadingWeek: true, error: null });
+    try {
+      const { list, carried, carriedFrom } = await weeklyApi.getCurrent();
+      set({ currentWeekList: list, carriedCount: carried, carriedFrom, isLoadingWeek: false });
+    } catch (err: any) {
+      set({ isLoadingWeek: false, error: err.message });
+    }
+  },
+
+  fetchWeeklyHistory: async () => {
+    try {
+      const history = await weeklyApi.getHistory();
+      set({ weeklyHistory: history });
+    } catch (err: any) {
+      set({ error: err.message });
+    }
+  },
 
   fetchLists: async () => {
     set({ isLoadingLists: true, error: null });
@@ -83,6 +120,15 @@ export const useListStore = create<ListState>((set, get) => ({
   addItem: async (listId, item) => {
     const newItem = await listsApi.addItem(listId, item);
     set((state) => ({ items: [...state.items, newItem] }));
+    // Also update currentWeekList items if it matches
+    const { currentWeekList } = get();
+    if (currentWeekList?.id === listId) {
+      set((state) => ({
+        currentWeekList: state.currentWeekList
+          ? { ...state.currentWeekList, items: [...(state.currentWeekList.items ?? []), newItem] }
+          : null,
+      }));
+    }
   },
 
   updateItem: async (listId, itemId, updates) => {
@@ -98,14 +144,12 @@ export const useListStore = create<ListState>((set, get) => ({
   },
 
   toggleItem: async (listId, itemId, checked) => {
-    // Optimistic update
     set((state) => ({
       items: state.items.map((i) => (i.id === itemId ? { ...i, checked } : i)),
     }));
     try {
-      await listsApi.updateItem(listId, itemId, { checked });
+      await listsApi.updateItem(listId, itemId, { checked } as any);
     } catch {
-      // Roll back
       set((state) => ({
         items: state.items.map((i) => (i.id === itemId ? { ...i, checked: !checked } : i)),
       }));

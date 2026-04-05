@@ -169,7 +169,7 @@ export const listsApi = {
   getItems: (id: string) =>
     handleResponse<Item[]>(apiFetch(`/lists/${id}/items`)),
 
-  addItem: (listId: string, item: { name: string; quantity: number; unit: string; notes?: string }) =>
+  addItem: (listId: string, item: { name: string; quantity: number; unit: string; notes?: string; productId?: string; category?: string }) =>
     handleResponse<Item>(
       apiFetch(`/lists/${listId}/items`, { method: 'POST', body: JSON.stringify(item) }),
     ),
@@ -188,13 +188,30 @@ export const listsApi = {
     ),
 };
 
+// ── Weekly lists ──────────────────────────────────────────────────────────────
+
+export const weeklyApi = {
+  getCurrent: () =>
+    handleResponse<{ list: List; carried: number; carriedFrom: { weekNumber: number; name: string } | null }>(
+      apiFetch('/lists/week/current'),
+    ),
+
+  getHistory: () =>
+    handleResponse<WeeklyHistoryItem[]>(apiFetch('/lists/week/history')),
+};
+
 // ── Products ──────────────────────────────────────────────────────────────────
 
 export const productsApi = {
-  search: (q: string) =>
-    handleResponse<{ data: Product[]; count: number }>(
-      apiFetch(`/products?q=${encodeURIComponent(q)}`),
-    ),
+  search: (q?: string, category?: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (category) params.set('category', category);
+    const qs = params.toString();
+    return handleResponse<{ data: Product[]; count: number }>(
+      apiFetch(`/products${qs ? `?${qs}` : ''}`),
+    );
+  },
 };
 
 // ── Compare ───────────────────────────────────────────────────────────────────
@@ -225,9 +242,13 @@ export type List = {
   id: string;
   name: string;
   userId: string;
+  isWeeklyList: boolean;
+  weekNumber?: number | null;
+  weekStartDate?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: Item[];
+  itemCount?: number;
 };
 
 export type Item = {
@@ -237,33 +258,56 @@ export type Item = {
   unit: string;
   notes?: string;
   checked: boolean;
+  position: number;
   listId: string;
+  productId?: string | null;
+  category?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type WeeklyHistoryItem = {
+  id: string;
+  name: string;
+  weekNumber: number;
+  weekStartDate: string;
+  itemCount: number;
+  checkedCount: number;
+  createdAt: string;
+};
+
+export type Product = {
+  id: string;
+  name: string;
+  category: string;
+  categoryEmoji: string;
+  unit: string;
+  popularity: number;
+  prices: { store: string; amount: number }[];
 };
 
 export type ItemComparison = {
   name: string;
   quantity: number;
   unit: string;
-  freshmart: { unitPrice: number; total: number } | null;
-  valuegrocer: { unitPrice: number; total: number } | null;
-  cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+  coles: { unitPrice: number; total: number } | null;
+  woolworths: { unitPrice: number; total: number } | null;
+  cheaperStore: 'Coles' | 'Woolworths' | null;
   saving: number;
 };
 
 export type CompareResult = {
-  freshmart: { total: number };
-  valuegrocer: { total: number };
-  cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+  coles: { total: number };
+  woolworths: { total: number };
+  cheaperStore: 'Coles' | 'Woolworths' | null;
   saving: { amount: number; percentage: number };
   items: ItemComparison[];
   notFound: string[];
 };
 
 export type SplitResult = {
-  freshmart: { items: SplitItem[]; subtotal: number };
-  valuegrocer: { items: SplitItem[]; subtotal: number };
+  coles: { items: SplitItem[]; subtotal: number };
+  woolworths: { items: SplitItem[]; subtotal: number };
   totalSaving: number;
   worthSplitting: boolean;
 };
@@ -272,12 +316,6 @@ export type SplitItem = {
   name: string;
   quantity: number;
   unit: string;
-  price: number;
-};
-
-export type Product = {
-  id: string;
-  name: string;
-  category: string;
-  unit: string;
+  unitPrice: number;
+  total: number;
 };

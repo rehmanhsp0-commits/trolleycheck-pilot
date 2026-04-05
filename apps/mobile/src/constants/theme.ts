@@ -1,25 +1,25 @@
 export const theme = {
   // Brand
-  primary: '#1D9E75',       // Trolley green
-  primaryDark: '#085041',   // Deep forest
-  secondary: '#EF9F27',     // Savings amber
-  danger: '#E24B4A',        // Alert red
+  primary: '#14A566',       // Trolley green
+  primaryDark: '#0A5C3A',   // Deep forest
+  secondary: '#F0A020',     // Savings amber
+  danger: '#E03535',        // Alert red
 
   // Backgrounds
-  background: '#F1EFE8',    // Off white
+  background: '#F4F6F5',    // Clean neutral — no warm tint
   surface: '#FFFFFF',       // Card white
 
   // Text
-  textPrimary: '#2C2C2A',   // Almost black
-  textSecondary: '#5F5E5A', // Muted
-  textHint: '#888780',      // Hint
+  textPrimary: '#111210',   // Near-black — crisp contrast
+  textSecondary: '#4A4D4B', // Muted but readable
+  textHint: '#8A8D8B',      // Hint
 
   // UI
-  border: '#D3D1C7',        // Light border
+  border: '#E2E5E3',        // Clean border
 
   // Derived
-  primaryLight: '#E8F7F2',  // Light green tint for backgrounds
-  secondaryLight: '#FEF6E7', // Light amber tint
+  primaryLight: '#E5F5EE',  // Light green tint
+  secondaryLight: '#FEF5E4', // Light amber tint
   dangerLight: '#FDEEED',   // Light red tint
 } as const;
 
@@ -42,16 +42,16 @@ export const radius = {
 
 export const shadow = {
   sm: {
-    shadowColor: '#2C2C2A',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
     elevation: 2,
   },
   md: {
-    shadowColor: '#2C2C2A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.09,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.10,
     shadowRadius: 8,
     elevation: 4,
   },

@@ -53,8 +53,8 @@ const PRODUCTS_WITH_PRICES = [
     unit: 'L',
     active: true,
     prices: [
-      { store: 'FreshMart', amount: 2.5 },
-      { store: 'ValueGrocer', amount: 2.2 },
+      { store: 'Coles', amount: 2.5 },
+      { store: 'Woolworths', amount: 2.2 },
     ],
   },
   {
@@ -63,8 +63,8 @@ const PRODUCTS_WITH_PRICES = [
     unit: 'each',
     active: true,
     prices: [
-      { store: 'FreshMart', amount: 3.0 },
-      { store: 'ValueGrocer', amount: 3.5 },
+      { store: 'Coles', amount: 3.0 },
+      { store: 'Woolworths', amount: 3.5 },
     ],
   },
 ];
@@ -105,9 +105,9 @@ describe('POST /compare (TC-9)', () => {
 
     expect(res.status).toBe(200);
     // FreshMart: Milk 2×2.5=5.00, Bread 1×3.00=3.00 → 8.00
-    expect(res.body.freshmart.total).toBe(8);
+    expect(res.body.coles.total).toBe(8);
     // ValueGrocer: Milk 2×2.2=4.40, Bread 1×3.50=3.50 → 7.90
-    expect(res.body.valuegrocer.total).toBe(7.9);
+    expect(res.body.woolworths.total).toBe(7.9);
   });
 
   it('identifies the cheaper store', async () => {
@@ -116,7 +116,7 @@ describe('POST /compare (TC-9)', () => {
 
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
-    expect(res.body.cheaperStore).toBe('ValueGrocer');
+    expect(res.body.cheaperStore).toBe('Woolworths');
   });
 
   it('returns saving amount and percentage', async () => {
@@ -136,10 +136,10 @@ describe('POST /compare (TC-9)', () => {
 
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
-    expect(res.body.freshmart.items).toHaveLength(2);
-    expect(res.body.valuegrocer.items).toHaveLength(2);
+    expect(res.body.coles.items).toHaveLength(2);
+    expect(res.body.woolworths.items).toHaveLength(2);
 
-    const milkFresh = res.body.freshmart.items.find((i: any) => i.name === 'Milk');
+    const milkFresh = res.body.coles.items.find((i: any) => i.name === 'Milk');
     expect(milkFresh).toMatchObject({ quantity: 2, unitPrice: 2.5, total: 5 });
   });
 
@@ -155,9 +155,9 @@ describe('POST /compare (TC-9)', () => {
     expect(milk).toMatchObject({
       name: 'Milk',
       quantity: 2,
-      freshmart: { unitPrice: 2.5, total: 5 },
-      valuegrocer: { unitPrice: 2.2, total: 4.4 },
-      cheaperStore: 'ValueGrocer',
+      coles: { unitPrice: 2.5, total: 5 },
+      woolworths: { unitPrice: 2.2, total: 4.4 },
+      cheaperStore: 'Woolworths',
       saving: 0.6,
     });
   });
@@ -177,8 +177,8 @@ describe('POST /compare (TC-9)', () => {
   it('item cheaperStore is null when same price at both stores (TC-10)', async () => {
     const equalProducts = [
       { id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [
-        { store: 'FreshMart', amount: 2.5 },
-        { store: 'ValueGrocer', amount: 2.5 },
+        { store: 'Coles', amount: 2.5 },
+        { store: 'Woolworths', amount: 2.5 },
       ]},
     ];
     mockListFindFirst.mockResolvedValue({ ...LIST_WITH_ITEMS, items: [LIST_WITH_ITEMS.items[0]] });
@@ -191,14 +191,14 @@ describe('POST /compare (TC-9)', () => {
   });
 
   it('item valuegrocer is null when only FreshMart price exists (TC-10)', async () => {
-    const fmOnly = [{ id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [{ store: 'FreshMart', amount: 2.5 }] }];
+    const fmOnly = [{ id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [{ store: 'Coles', amount: 2.5 }] }];
     mockListFindFirst.mockResolvedValue({ ...LIST_WITH_ITEMS, items: [LIST_WITH_ITEMS.items[0]] });
     mockProductFindMany.mockResolvedValue(fmOnly);
 
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
-    expect(res.body.items[0].freshmart).toMatchObject({ unitPrice: 2.5 });
-    expect(res.body.items[0].valuegrocer).toBeNull();
+    expect(res.body.items[0].coles).toMatchObject({ unitPrice: 2.5 });
+    expect(res.body.items[0].woolworths).toBeNull();
     expect(res.body.items[0].cheaperStore).toBeNull();
   });
 
@@ -229,7 +229,7 @@ describe('POST /compare (TC-9)', () => {
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
     expect(res.status).toBe(200);
-    expect(res.body.freshmart.items).toHaveLength(1);
+    expect(res.body.coles.items).toHaveLength(1);
     expect(res.body.notFound).toHaveLength(0);
   });
 
@@ -239,8 +239,8 @@ describe('POST /compare (TC-9)', () => {
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
     expect(res.status).toBe(200);
-    expect(res.body.freshmart.total).toBe(0);
-    expect(res.body.valuegrocer.total).toBe(0);
+    expect(res.body.coles.total).toBe(0);
+    expect(res.body.woolworths.total).toBe(0);
     expect(res.body.cheaperStore).toBeNull();
     expect(res.body.notFound).toHaveLength(0);
   });
@@ -253,8 +253,8 @@ describe('POST /compare (TC-9)', () => {
         unit: 'L',
         active: true,
         prices: [
-          { store: 'FreshMart', amount: 2.5 },
-          { store: 'ValueGrocer', amount: 2.5 },
+          { store: 'Coles', amount: 2.5 },
+          { store: 'Woolworths', amount: 2.5 },
         ],
       },
     ];
@@ -278,7 +278,7 @@ describe('POST /compare (TC-9)', () => {
         name: 'Milk',
         unit: 'L',
         active: true,
-        prices: [{ store: 'FreshMart', amount: 2.5 }],
+        prices: [{ store: 'Coles', amount: 2.5 }],
       },
     ];
     mockListFindFirst.mockResolvedValue({
@@ -290,8 +290,8 @@ describe('POST /compare (TC-9)', () => {
     const res = await request(app).post('/compare').set(AUTH).send({ listId: 'list-1' });
 
     expect(res.status).toBe(200);
-    expect(res.body.freshmart.items).toHaveLength(1);
-    expect(res.body.valuegrocer.items).toHaveLength(0);
+    expect(res.body.coles.items).toHaveLength(1);
+    expect(res.body.woolworths.items).toHaveLength(0);
     expect(res.body.cheaperStore).toBeNull(); // can't compare with only one store
   });
 

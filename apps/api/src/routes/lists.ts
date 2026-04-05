@@ -79,7 +79,12 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: {
         updatedAt: 'desc',
       },
+      include: {
+        _count: { select: { items: true } },
+      },
     });
+
+    const response = lists.map(({ _count, ...l }) => ({ ...l, itemCount: _count.items }));
 
     logger.info(
       {
@@ -89,7 +94,7 @@ router.get('/', async (req: Request, res: Response) => {
       'Lists retrieved'
     );
 
-    return res.status(200).json(lists);
+    return res.status(200).json(response);
   } catch (err: any) {
     logger.error({ err }, 'List retrieval error');
 

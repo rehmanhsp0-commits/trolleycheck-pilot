@@ -11,16 +11,16 @@ const router = Router();
 router.use(authMiddleware);
 router.use(generalRateLimit);
 
-const STORES = ['FreshMart', 'ValueGrocer'] as const;
+const STORES = ['Coles', 'Woolworths'] as const;
 
 /**
  * POST /compare
  * Compare basket prices across FreshMart and ValueGrocer for a grocery list.
  * Accepts: { listId: string }
  * Returns: {
- *   freshmart: { total, items },
- *   valuegrocer: { total, items },
- *   cheaperStore: 'FreshMart' | 'ValueGrocer' | null,
+ *   coles: { total, items },
+ *   woolworths: { total, items },
+ *   cheaperStore: 'Coles' | 'Woolworths' | null,
  *   saving: { amount, percentage },
  *   notFound: string[]
  * }
@@ -48,8 +48,8 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
 
     if (list.items.length === 0) {
       return res.status(200).json({
-        freshmart: { total: 0, items: [] },
-        valuegrocer: { total: 0, items: [] },
+        coles: { total: 0, items: [] },
+        woolworths: { total: 0, items: [] },
         cheaperStore: null,
         saving: { amount: 0, percentage: 0 },
         notFound: [],
@@ -79,14 +79,14 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
       name: string;
       quantity: number;
       unit: string;
-      freshmart: StoreItemPrice | null;
-      valuegrocer: StoreItemPrice | null;
-      cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+      coles: StoreItemPrice | null;
+      woolworths: StoreItemPrice | null;
+      cheaperStore: 'Coles' | 'Woolworths' | null;
       saving: number;
     };
 
-    const freshmartItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
-    const valuegrocerItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
+    const colesItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
+    const woolworthsItems: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[] = [];
     const itemRows: ItemRow[] = [];
     const notFound: string[] = [];
 
@@ -98,10 +98,10 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
         continue;
       }
 
-      const freshmartPrice = product.prices.find((p) => p.store === 'FreshMart');
-      const valuegrocerPrice = product.prices.find((p) => p.store === 'ValueGrocer');
+      const colesPrice = product.prices.find((p) => p.store === 'Coles');
+      const woolworthsPrice = product.prices.find((p) => p.store === 'Woolworths');
 
-      if (!freshmartPrice && !valuegrocerPrice) {
+      if (!colesPrice && !woolworthsPrice) {
         notFound.push(item.name);
         continue;
       }
@@ -109,55 +109,55 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
       const quantity = item.quantity ?? 1;
       const unit = item.unit ?? product.unit;
 
-      const fmPrice = freshmartPrice
-        ? { unitPrice: freshmartPrice.amount, total: Math.round(freshmartPrice.amount * quantity * 100) / 100 }
+      const fmPrice = colesPrice
+        ? { unitPrice: colesPrice.amount, total: Math.round(colesPrice.amount * quantity * 100) / 100 }
         : null;
-      const vgPrice = valuegrocerPrice
-        ? { unitPrice: valuegrocerPrice.amount, total: Math.round(valuegrocerPrice.amount * quantity * 100) / 100 }
+      const vgPrice = woolworthsPrice
+        ? { unitPrice: woolworthsPrice.amount, total: Math.round(woolworthsPrice.amount * quantity * 100) / 100 }
         : null;
 
-      let itemCheaperStore: 'FreshMart' | 'ValueGrocer' | null = null;
+      let itemCheaperStore: 'Coles' | 'Woolworths' | null = null;
       let itemSaving = 0;
 
       if (fmPrice && vgPrice) {
         if (fmPrice.total < vgPrice.total) {
-          itemCheaperStore = 'FreshMart';
+          itemCheaperStore = 'Coles';
           itemSaving = Math.round((vgPrice.total - fmPrice.total) * 100) / 100;
         } else if (vgPrice.total < fmPrice.total) {
-          itemCheaperStore = 'ValueGrocer';
+          itemCheaperStore = 'Woolworths';
           itemSaving = Math.round((fmPrice.total - vgPrice.total) * 100) / 100;
         }
       }
 
-      itemRows.push({ name: item.name, quantity, unit, freshmart: fmPrice, valuegrocer: vgPrice, cheaperStore: itemCheaperStore, saving: itemSaving });
+      itemRows.push({ name: item.name, quantity, unit, coles: fmPrice, woolworths: vgPrice, cheaperStore: itemCheaperStore, saving: itemSaving });
 
       if (fmPrice) {
-        freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.unitPrice, total: fmPrice.total });
+        colesItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.unitPrice, total: fmPrice.total });
       }
       if (vgPrice) {
-        valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.unitPrice, total: vgPrice.total });
+        woolworthsItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.unitPrice, total: vgPrice.total });
       }
     }
 
     // Sort item comparisons by saving (largest first)
     itemRows.sort((a, b) => b.saving - a.saving);
 
-    const freshmartTotal = Math.round(freshmartItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
-    const valuegrocerTotal = Math.round(valuegrocerItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
+    const colesTotal = Math.round(colesItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
+    const woolworthsTotal = Math.round(woolworthsItems.reduce((sum, i) => sum + i.total, 0) * 100) / 100;
 
-    let cheaperStore: 'FreshMart' | 'ValueGrocer' | null = null;
+    let cheaperStore: 'Coles' | 'Woolworths' | null = null;
     let savingAmount = 0;
     let savingPercentage = 0;
 
-    if (freshmartTotal > 0 && valuegrocerTotal > 0) {
-      if (freshmartTotal < valuegrocerTotal) {
-        cheaperStore = 'FreshMart';
-        savingAmount = Math.round((valuegrocerTotal - freshmartTotal) * 100) / 100;
-        savingPercentage = Math.round((savingAmount / valuegrocerTotal) * 10000) / 100;
-      } else if (valuegrocerTotal < freshmartTotal) {
-        cheaperStore = 'ValueGrocer';
-        savingAmount = Math.round((freshmartTotal - valuegrocerTotal) * 100) / 100;
-        savingPercentage = Math.round((savingAmount / freshmartTotal) * 10000) / 100;
+    if (colesTotal > 0 && woolworthsTotal > 0) {
+      if (colesTotal < woolworthsTotal) {
+        cheaperStore = 'Coles';
+        savingAmount = Math.round((woolworthsTotal - colesTotal) * 100) / 100;
+        savingPercentage = Math.round((savingAmount / woolworthsTotal) * 10000) / 100;
+      } else if (woolworthsTotal < colesTotal) {
+        cheaperStore = 'Woolworths';
+        savingAmount = Math.round((colesTotal - woolworthsTotal) * 100) / 100;
+        savingPercentage = Math.round((savingAmount / colesTotal) * 10000) / 100;
       }
     }
 
@@ -165,8 +165,8 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
       {
         userId,
         listId,
-        freshmartTotal,
-        valuegrocerTotal,
+        colesTotal,
+        woolworthsTotal,
         cheaperStore,
         notFoundCount: notFound.length,
       },
@@ -174,8 +174,8 @@ router.post('/', validateRequest(CompareSchema), async (req: Request, res: Respo
     );
 
     return res.status(200).json({
-      freshmart: { total: freshmartTotal, items: freshmartItems },
-      valuegrocer: { total: valuegrocerTotal, items: valuegrocerItems },
+      coles: { total: colesTotal, items: colesItems },
+      woolworths: { total: woolworthsTotal, items: woolworthsItems },
       items: itemRows,
       cheaperStore,
       saving: { amount: savingAmount, percentage: savingPercentage },
@@ -199,8 +199,8 @@ const DEFAULT_MINIMUM_SAVING = 5;
  * Split-shop optimiser: assigns each item to the cheapest available store.
  * Accepts: { listId, minimumSaving?, excludeItems? }
  * Returns: {
- *   freshmart: { items, subtotal },
- *   valuegrocer: { items, subtotal },
+ *   coles: { items, subtotal },
+ *   woolworths: { items, subtotal },
  *   totalSaving,
  *   worthSplitting
  * }
@@ -244,15 +244,15 @@ router.post('/split', validateRequest(SplitSchema), async (req: Request, res: Re
     const productMap = new Map(products.map((p) => [p.name.toLowerCase(), p]));
 
     type SplitItem = { name: string; quantity: number; unit: string; unitPrice: number; total: number };
-    const freshmartItems: SplitItem[] = [];
-    const valuegrocerItems: SplitItem[] = [];
+    const colesItems: SplitItem[] = [];
+    const woolworthsItems: SplitItem[] = [];
 
     for (const item of activeItems) {
       const product = productMap.get(item.name.toLowerCase());
       if (!product) continue;
 
-      const fmPrice = product.prices.find((p) => p.store === 'FreshMart');
-      const vgPrice = product.prices.find((p) => p.store === 'ValueGrocer');
+      const fmPrice = product.prices.find((p) => p.store === 'Coles');
+      const vgPrice = product.prices.find((p) => p.store === 'Woolworths');
 
       if (!fmPrice && !vgPrice) continue;
 
@@ -262,60 +262,60 @@ router.post('/split', validateRequest(SplitSchema), async (req: Request, res: Re
       if (fmPrice && vgPrice) {
         // Assign to cheaper store
         if (fmPrice.amount <= vgPrice.amount) {
-          freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
+          colesItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
         } else {
-          valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
+          woolworthsItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
         }
       } else if (fmPrice) {
-        freshmartItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
+        colesItems.push({ name: item.name, quantity, unit, unitPrice: fmPrice.amount, total: Math.round(fmPrice.amount * quantity * 100) / 100 });
       } else if (vgPrice) {
-        valuegrocerItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
+        woolworthsItems.push({ name: item.name, quantity, unit, unitPrice: vgPrice.amount, total: Math.round(vgPrice.amount * quantity * 100) / 100 });
       }
     }
 
-    const fmSubtotal = Math.round(freshmartItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
-    const vgSubtotal = Math.round(valuegrocerItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
-    const splitTotal = Math.round((fmSubtotal + vgSubtotal) * 100) / 100;
+    const colesSubtotal = Math.round(colesItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
+    const woolworthsSubtotal = Math.round(woolworthsItems.reduce((s, i) => s + i.total, 0) * 100) / 100;
+    const splitTotal = Math.round((colesSubtotal + woolworthsSubtotal) * 100) / 100;
 
     // Best single-store: use the store that covers the most items at lowest cost
     // Sum all items at FreshMart (use VG price if FM not available), and vice versa
-    let fmSingleTotal = 0;
-    let vgSingleTotal = 0;
-    let fmComplete = true;
-    let vgComplete = true;
+    let colesSingleTotal = 0;
+    let woolworthsSingleTotal = 0;
+    let colesComplete = true;
+    let woolworthsComplete = true;
 
     for (const item of activeItems) {
       const product = productMap.get(item.name.toLowerCase());
       if (!product) continue;
-      const fmPrice = product.prices.find((p) => p.store === 'FreshMart');
-      const vgPrice = product.prices.find((p) => p.store === 'ValueGrocer');
+      const fmPrice = product.prices.find((p) => p.store === 'Coles');
+      const vgPrice = product.prices.find((p) => p.store === 'Woolworths');
       const qty = item.quantity ?? 1;
 
       if (fmPrice) {
-        fmSingleTotal += fmPrice.amount * qty;
+        colesSingleTotal += fmPrice.amount * qty;
       } else {
-        fmComplete = false;
+        colesComplete = false;
       }
       if (vgPrice) {
-        vgSingleTotal += vgPrice.amount * qty;
+        woolworthsSingleTotal += vgPrice.amount * qty;
       } else {
-        vgComplete = false;
+        woolworthsComplete = false;
       }
     }
 
-    fmSingleTotal = Math.round(fmSingleTotal * 100) / 100;
-    vgSingleTotal = Math.round(vgSingleTotal * 100) / 100;
+    colesSingleTotal = Math.round(colesSingleTotal * 100) / 100;
+    woolworthsSingleTotal = Math.round(woolworthsSingleTotal * 100) / 100;
 
     // Cheapest single-store that has all found items; prefer the complete one
     let cheapestSingle: number;
-    if (fmComplete && vgComplete) {
-      cheapestSingle = Math.min(fmSingleTotal, vgSingleTotal);
-    } else if (fmComplete) {
-      cheapestSingle = fmSingleTotal;
-    } else if (vgComplete) {
-      cheapestSingle = vgSingleTotal;
+    if (colesComplete && woolworthsComplete) {
+      cheapestSingle = Math.min(colesSingleTotal, woolworthsSingleTotal);
+    } else if (colesComplete) {
+      cheapestSingle = colesSingleTotal;
+    } else if (woolworthsComplete) {
+      cheapestSingle = woolworthsSingleTotal;
     } else {
-      cheapestSingle = Math.min(fmSingleTotal, vgSingleTotal);
+      cheapestSingle = Math.min(colesSingleTotal, woolworthsSingleTotal);
     }
 
     const totalSaving = Math.round((cheapestSingle - splitTotal) * 100) / 100;
@@ -324,8 +324,8 @@ router.post('/split', validateRequest(SplitSchema), async (req: Request, res: Re
     logger.info({ userId, listId, splitTotal, cheapestSingle, totalSaving, worthSplitting }, 'Split-shop optimiser completed');
 
     return res.status(200).json({
-      freshmart: { items: freshmartItems, subtotal: fmSubtotal },
-      valuegrocer: { items: valuegrocerItems, subtotal: vgSubtotal },
+      coles: { items: colesItems, subtotal: colesSubtotal },
+      woolworths: { items: woolworthsItems, subtotal: woolworthsSubtotal },
       totalSaving: Math.max(0, totalSaving),
       worthSplitting,
     });
