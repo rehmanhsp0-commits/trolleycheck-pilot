@@ -3,8 +3,16 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, "feature/**", "fix/**"]
+    paths:
+      - "apps/api/**"
+      - "Dockerfile"
+      - ".github/workflows/**"
   pull_request:
     branches: [main, develop]
+    paths:
+      - "apps/api/**"
+      - "Dockerfile"
+      - ".github/workflows/**"
 
 jobs:
   # ── 1. Lint and test — runs on all branches ─────────────────────────────────
