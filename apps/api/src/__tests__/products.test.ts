@@ -93,10 +93,10 @@ describe('GET /products (TC-12)', () => {
     expect(call.where.name).toMatchObject({ contains: 'milk', mode: 'insensitive' });
   });
 
-  it('filters prices by ?store=FreshMart', async () => {
+  it('filters prices by ?store=Coles', async () => {
     mockProductFindMany.mockResolvedValue([MILK]);
 
-    const res = await request(app).get('/products?store=FreshMart').set(AUTH);
+    const res = await request(app).get('/products?store=Coles').set(AUTH);
 
     expect(res.status).toBe(200);
     const call = mockProductFindMany.mock.calls[0][0];
