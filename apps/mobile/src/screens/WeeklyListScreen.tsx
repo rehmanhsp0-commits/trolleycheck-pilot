@@ -73,9 +73,9 @@ function CompareBanner({
 
   if (!result) return null;
 
-  const cheaper = result.cheaperStore ?? 'FreshMart';
-  const fm = result.freshmart.total.toFixed(2);
-  const vg = result.valuegrocer.total.toFixed(2);
+  const cheaper = result.cheaperStore ?? 'Coles';
+  const fm = result.coles.total.toFixed(2);
+  const vg = result.woolworths.total.toFixed(2);
   const saving = result.saving.amount.toFixed(2);
 
   return (
@@ -323,8 +323,8 @@ function AddPanel({
     }
   };
 
-  const fmPrice = (p: Product) => p.prices.find(x => x.store === 'FreshMart')?.amount;
-  const vgPrice = (p: Product) => p.prices.find(x => x.store === 'ValueGrocer')?.amount;
+  const fmPrice = (p: Product) => p.prices.find(x => x.store === 'Coles')?.amount;
+  const vgPrice = (p: Product) => p.prices.find(x => x.store === 'Woolworths')?.amount;
 
   return (
     <View style={addStyles.panel}>
@@ -606,7 +606,7 @@ export function WeeklyListScreen({ navigation }: Props) {
 
   // Estimated total from compare
   const estTotal = compareResult
-    ? Math.min(compareResult.freshmart.total, compareResult.valuegrocer.total).toFixed(2)
+    ? Math.min(compareResult.coles.total, compareResult.woolworths.total).toFixed(2)
     : null;
 
   if (isLoadingWeek && !currentWeekList) {

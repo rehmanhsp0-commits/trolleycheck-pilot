@@ -21,16 +21,16 @@ type Props = {
 };
 
 function StoreTotals({ result }: { result: CompareResult }) {
-  const { freshmart, valuegrocer, cheaperStore, saving } = result;
-  const fmCheaper = cheaperStore === 'FreshMart';
-  const vgCheaper = cheaperStore === 'ValueGrocer';
+  const { coles, woolworths, cheaperStore, saving } = result;
+  const colesCheaper = cheaperStore === 'Coles';
+  const woolsCheaper = cheaperStore === 'Woolworths';
 
   return (
     <View style={styles.totalsRow}>
-      <View style={[styles.storeCard, fmCheaper && styles.storeCardWinner]}>
-        {fmCheaper && <View style={styles.winnerBadge}><Text style={styles.winnerText}>Cheaper</Text></View>}
-        <Text style={styles.storeName}>FreshMart</Text>
-        <Text style={styles.storeTotal}>${freshmart.total.toFixed(2)}</Text>
+      <View style={[styles.storeCard, colesCheaper && styles.storeCardWinner]}>
+        {colesCheaper && <View style={styles.winnerBadge}><Text style={styles.winnerText}>Cheaper</Text></View>}
+        <Text style={[styles.storeName, { color: '#E31837' }]}>Coles</Text>
+        <Text style={styles.storeTotal}>${coles.total.toFixed(2)}</Text>
       </View>
       <View style={styles.vsColumn}>
         {cheaperStore && (
@@ -41,18 +41,20 @@ function StoreTotals({ result }: { result: CompareResult }) {
         )}
         <Text style={styles.vsText}>vs</Text>
       </View>
-      <View style={[styles.storeCard, vgCheaper && styles.storeCardWinner]}>
-        {vgCheaper && <View style={styles.winnerBadge}><Text style={styles.winnerText}>Cheaper</Text></View>}
-        <Text style={styles.storeName}>ValueGrocer</Text>
-        <Text style={styles.storeTotal}>${valuegrocer.total.toFixed(2)}</Text>
+      <View style={[styles.storeCard, woolsCheaper && styles.storeCardWinner]}>
+        {woolsCheaper && <View style={styles.winnerBadge}><Text style={styles.winnerText}>Cheaper</Text></View>}
+        <Text style={[styles.storeName, { color: '#007B40' }]}>Woolworths</Text>
+        <Text style={styles.storeTotal}>${woolworths.total.toFixed(2)}</Text>
       </View>
     </View>
   );
 }
 
 function ItemRow({ item }: { item: ItemComparison }) {
-  const fmPrice = item.freshmart?.total;
-  const vgPrice = item.valuegrocer?.total;
+  const colesPrice = item.coles?.total;
+  const woolsPrice = item.woolworths?.total;
+  const fmPrice = colesPrice;
+  const vgPrice = woolsPrice;
   const notAvailable = fmPrice == null && vgPrice == null;
 
   return (
@@ -65,15 +67,15 @@ function ItemRow({ item }: { item: ItemComparison }) {
         <Text style={styles.notFound}>Not available at either store</Text>
       ) : (
         <View style={styles.itemPrices}>
-          <View style={[styles.priceCol, item.cheaperStore === 'FreshMart' && styles.priceColWinner]}>
-            <Text style={styles.priceStore}>FreshMart</Text>
-            <Text style={[styles.priceAmount, item.cheaperStore === 'FreshMart' && styles.priceAmountWinner]}>
+          <View style={[styles.priceCol, item.cheaperStore === 'Coles' && styles.priceColWinner]}>
+            <Text style={styles.priceStore}>Coles</Text>
+            <Text style={[styles.priceAmount, item.cheaperStore === 'Coles' && styles.priceAmountWinner]}>
               {fmPrice != null ? `$${fmPrice.toFixed(2)}` : '—'}
             </Text>
           </View>
-          <View style={[styles.priceCol, item.cheaperStore === 'ValueGrocer' && styles.priceColWinner]}>
-            <Text style={styles.priceStore}>ValueGrocer</Text>
-            <Text style={[styles.priceAmount, item.cheaperStore === 'ValueGrocer' && styles.priceAmountWinner]}>
+          <View style={[styles.priceCol, item.cheaperStore === 'Woolworths' && styles.priceColWinner]}>
+            <Text style={styles.priceStore}>Woolworths</Text>
+            <Text style={[styles.priceAmount, item.cheaperStore === 'Woolworths' && styles.priceAmountWinner]}>
               {vgPrice != null ? `$${vgPrice.toFixed(2)}` : '—'}
             </Text>
           </View>
@@ -107,8 +109,8 @@ export function CompareScreen({ navigation, route }: Props) {
     if (!result) return;
     const lines = [
       'TrolleyCheck price comparison',
-      `FreshMart total: $${result.freshmart.total.toFixed(2)}`,
-      `ValueGrocer total: $${result.valuegrocer.total.toFixed(2)}`,
+      `Coles total: $${result.coles.total.toFixed(2)}`,
+      `Woolworths total: $${result.woolworths.total.toFixed(2)}`,
       result.cheaperStore
         ? `${result.cheaperStore} is cheaper — save $${result.saving.amount.toFixed(2)} (${result.saving.percentage.toFixed(0)}%)`
         : 'Both stores cost the same.',

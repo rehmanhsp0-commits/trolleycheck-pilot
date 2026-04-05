@@ -248,6 +248,7 @@ export type List = {
   createdAt: string;
   updatedAt: string;
   items?: Item[];
+  itemCount?: number;
 };
 
 export type Item = {
@@ -289,24 +290,24 @@ export type ItemComparison = {
   name: string;
   quantity: number;
   unit: string;
-  freshmart: { unitPrice: number; total: number } | null;
-  valuegrocer: { unitPrice: number; total: number } | null;
-  cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+  coles: { unitPrice: number; total: number } | null;
+  woolworths: { unitPrice: number; total: number } | null;
+  cheaperStore: 'Coles' | 'Woolworths' | null;
   saving: number;
 };
 
 export type CompareResult = {
-  freshmart: { total: number };
-  valuegrocer: { total: number };
-  cheaperStore: 'FreshMart' | 'ValueGrocer' | null;
+  coles: { total: number };
+  woolworths: { total: number };
+  cheaperStore: 'Coles' | 'Woolworths' | null;
   saving: { amount: number; percentage: number };
   items: ItemComparison[];
   notFound: string[];
 };
 
 export type SplitResult = {
-  freshmart: { items: SplitItem[]; subtotal: number };
-  valuegrocer: { items: SplitItem[]; subtotal: number };
+  coles: { items: SplitItem[]; subtotal: number };
+  woolworths: { items: SplitItem[]; subtotal: number };
   totalSaving: number;
   worthSplitting: boolean;
 };

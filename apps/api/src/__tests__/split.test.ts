@@ -51,15 +51,15 @@ const LIST_WITH_ITEMS = {
 const PRODUCTS = [
   {
     id: 'p1', name: 'Milk', unit: 'L', active: true,
-    prices: [{ store: 'FreshMart', amount: 2.5 }, { store: 'ValueGrocer', amount: 2.2 }],
+    prices: [{ store: 'Coles', amount: 2.5 }, { store: 'Woolworths', amount: 2.2 }],
   },
   {
     id: 'p2', name: 'Bread', unit: 'each', active: true,
-    prices: [{ store: 'FreshMart', amount: 3.0 }, { store: 'ValueGrocer', amount: 3.5 }],
+    prices: [{ store: 'Coles', amount: 3.0 }, { store: 'Woolworths', amount: 3.5 }],
   },
   {
     id: 'p3', name: 'Butter', unit: 'each', active: true,
-    prices: [{ store: 'FreshMart', amount: 4.0 }],
+    prices: [{ store: 'Coles', amount: 4.0 }],
   },
 ];
 
@@ -99,8 +99,8 @@ describe('POST /compare/split (TC-11)', () => {
 
     expect(res.status).toBe(200);
     // Milk → ValueGrocer (cheaper), Bread → FreshMart (cheaper), Butter → FreshMart (only store)
-    const vgNames = res.body.valuegrocer.items.map((i: any) => i.name);
-    const fmNames = res.body.freshmart.items.map((i: any) => i.name);
+    const vgNames = res.body.woolworths.items.map((i: any) => i.name);
+    const fmNames = res.body.coles.items.map((i: any) => i.name);
     expect(vgNames).toContain('Milk');
     expect(fmNames).toContain('Bread');
     expect(fmNames).toContain('Butter');
@@ -113,9 +113,9 @@ describe('POST /compare/split (TC-11)', () => {
     const res = await request(app).post('/compare/split').set(AUTH).send({ listId: 'list-1' });
 
     // FreshMart: Bread 3.00 + Butter 4.00 = 7.00
-    expect(res.body.freshmart.subtotal).toBe(7);
+    expect(res.body.coles.subtotal).toBe(7);
     // ValueGrocer: Milk 2×2.20 = 4.40
-    expect(res.body.valuegrocer.subtotal).toBe(4.4);
+    expect(res.body.woolworths.subtotal).toBe(4.4);
   });
 
   it('returns totalSaving vs cheapest single-store option', async () => {
@@ -136,9 +136,9 @@ describe('POST /compare/split (TC-11)', () => {
     // FM much cheaper on Milk, VG much cheaper on Bread → big split saving
     const bigSavingProducts = [
       { id: 'p1', name: 'Milk', unit: 'L', active: true, prices: [
-        { store: 'FreshMart', amount: 1 }, { store: 'ValueGrocer', amount: 10 }]},  // FM cheaper
+        { store: 'Coles', amount: 1 }, { store: 'Woolworths', amount: 10 }]},  // FM cheaper
       { id: 'p2', name: 'Bread', unit: 'each', active: true, prices: [
-        { store: 'FreshMart', amount: 10 }, { store: 'ValueGrocer', amount: 1 }]},  // VG cheaper
+        { store: 'Coles', amount: 10 }, { store: 'Woolworths', amount: 1 }]},  // VG cheaper
     ];
     // qty 2 Milk + qty 1 Bread
     // Split: FM=2×1=2, VG=1×1=1 → splitTotal=3
@@ -183,8 +183,8 @@ describe('POST /compare/split (TC-11)', () => {
       .send({ listId: 'list-1', excludeItems: ['Milk'] });
 
     const allNames = [
-      ...res.body.freshmart.items.map((i: any) => i.name),
-      ...res.body.valuegrocer.items.map((i: any) => i.name),
+      ...res.body.coles.items.map((i: any) => i.name),
+      ...res.body.woolworths.items.map((i: any) => i.name),
     ];
     expect(allNames).not.toContain('Milk');
   });

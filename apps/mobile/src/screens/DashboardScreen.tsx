@@ -108,7 +108,7 @@ export function DashboardScreen() {
     if (!currentWeekList) return;
     compareApi.compare(currentWeekList.id)
       .then(r => {
-        const best = Math.min(r.freshmart.total, r.valuegrocer.total);
+        const best = Math.min(r.coles.total, r.woolworths.total);
         setWeekTotal(best);
         setWeekSaving(r.saving.amount);
       })

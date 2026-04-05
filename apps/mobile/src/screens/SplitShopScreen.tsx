@@ -94,13 +94,13 @@ export function SplitShopScreen({ route }: Props) {
     const lines = [
       '🛒 TrolleyCheck Split Shop',
       '',
-      '📍 FreshMart',
-      ...result.freshmart.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
-      `  Subtotal: $${result.freshmart.subtotal.toFixed(2)}`,
+      '📍 Coles',
+      ...result.coles.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
+      `  Subtotal: $${result.coles.subtotal.toFixed(2)}`,
       '',
-      '📍 ValueGrocer',
-      ...result.valuegrocer.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
-      `  Subtotal: $${result.valuegrocer.subtotal.toFixed(2)}`,
+      '📍 Woolworths',
+      ...result.woolworths.items.map((i) => `  ${i.name} — $${i.total.toFixed(2)}`),
+      `  Subtotal: $${result.woolworths.subtotal.toFixed(2)}`,
       '',
       `Total saving: $${result.totalSaving.toFixed(2)}`,
     ];
@@ -170,16 +170,16 @@ export function SplitShopScreen({ route }: Props) {
 
               {/* Store sections */}
               <StoreSection
-                title="Buy at FreshMart"
-                items={result.freshmart.items}
-                subtotal={result.freshmart.subtotal}
+                title="Buy at Coles"
+                items={result.coles.items}
+                subtotal={result.coles.subtotal}
                 color={theme.primary}
                 icon="🟢"
               />
               <StoreSection
-                title="Buy at ValueGrocer"
-                items={result.valuegrocer.items}
-                subtotal={result.valuegrocer.subtotal}
+                title="Buy at Woolworths"
+                items={result.woolworths.items}
+                subtotal={result.woolworths.subtotal}
                 color={theme.secondary}
                 icon="🟡"
               />

@@ -128,8 +128,8 @@ export function BrowseScreen() {
             </View>
           }
           renderItem={({ item: product }) => {
-            const fm = product.prices.find(p => p.store === 'FreshMart')?.amount;
-            const vg = product.prices.find(p => p.store === 'ValueGrocer')?.amount;
+            const fm = product.prices.find(p => p.store === 'Coles')?.amount;
+            const vg = product.prices.find(p => p.store === 'Woolworths')?.amount;
             const added = addedIds.has(product.id);
 
             return (
