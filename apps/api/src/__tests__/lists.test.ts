@@ -59,7 +59,7 @@ jest.mock('../lib/cache.js', () => ({
 import { app } from '../app.js';
 
 const AUTH = { Authorization: 'Bearer test-token' };
-const LIST_1 = { id: 'list-1', userId: 'test-user-id', name: 'My List', createdAt: new Date(), updatedAt: new Date() };
+const LIST_1 = { id: 'list-1', userId: 'test-user-id', name: 'My List', createdAt: new Date(), updatedAt: new Date(), _count: { items: 0 } };
 const LIST_WITH_ITEMS = { ...LIST_1, items: [] };
 const ITEM_1 = { id: 'item-1', listId: 'list-1', name: 'Milk', quantity: 1, unit: 'L', notes: null, checked: false, position: 1 };
 
