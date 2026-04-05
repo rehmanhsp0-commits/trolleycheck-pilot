@@ -1,7 +1,7 @@
 # TrolleyCheck Pilot — Executive Build Summary
 
 <p align="center">
-  <img src="apps/mobile/assets/icon.png" width="120" alt="TrolleyCheck" />
+  <img src="screenshots/icon.png" width="110" alt="TrolleyCheck" />
 </p>
 
 <p align="center"><strong>From a single prompt to a fully deployed, tested, production-ready application.</strong></p>
@@ -24,12 +24,13 @@ No scaffolding. No starter kit. Just a spec and Claude Code.
 
 Australians overspend on groceries because prices vary significantly between Coles, Woolworths, IGA and ALDI — but comparing them manually takes time. TrolleyCheck solves this in three steps.
 
-### Step 1 — Build your list
+### Step 1 — Build your weekly list
 
 The user opens the app and creates a grocery list for the week. They can:
 
 - Search the product catalogue (90+ items across 9 categories — Dairy, Bread, Meat, Produce, Pantry, Drinks, Household, Cleaning, Confectionery)
-- Add products directly with one tap, or type a custom item not in the catalogue
+- See live prices from all 4 stores on every product before adding
+- Add products with one tap, or type a custom item not in the catalogue
 - Set quantity and unit for each item
 - Tick items off as they shop
 
@@ -42,9 +43,9 @@ With one tap on **Compare prices**, the app sends the full list to the API, whic
 1. Looks up the current price of every item at Coles and Woolworths
 2. Calculates the total cost at each store
 3. Identifies which store is cheaper overall and by how much
-4. Returns an item-level breakdown so the user can see where each price difference comes from
+4. Returns an item-level breakdown sorted by saving
 
-The result screen shows the total at both stores, the saving amount, and a colour-coded list of every item with its price at each supermarket.
+The result screen shows the total at both stores, the saving amount highlighted in green, and a colour-coded breakdown of every item with its price at each supermarket.
 
 ### Step 3 — Split shop for maximum saving
 
@@ -54,13 +55,90 @@ The optimiser calculates:
 
 - Which items are cheaper at Coles → buy those at Coles
 - Which items are cheaper at Woolworths → buy those at Woolworths
-- The combined saving vs. doing the full shop at the more expensive store
+- Whether the combined saving crosses the user's minimum threshold (configurable: $2 / $5 / $10 / $15)
+- The combined saving vs. doing the full shop at one store
 
-The result is two lists — one for each store — with the total saving displayed. Users can share either list directly from the app.
+The result is two separate lists — one per store — with the total for each. Users can share either list directly from the app.
 
 ### Dashboard — savings over time
 
-The Dashboard screen shows the user their savings history across past weeks, helping them understand their spending patterns and reinforce the habit of comparing before they shop.
+The Dashboard shows the user's savings history across past weeks with spend and savings charts, helping them understand their spending patterns and reinforce the habit of comparing before they shop.
+
+---
+
+## The App — Screenshots
+
+### Login
+
+<p align="center">
+  <img src="screenshots/1000032454.jpg" width="280" alt="Login screen" />
+</p>
+
+*Clean login screen with the TrolleyCheck brand. Email and password authentication via Supabase JWT.*
+
+---
+
+### This Week — Weekly Shopping List
+
+<p align="center">
+  <img src="screenshots/1000032456.jpg" width="280" alt="Weekly list" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="screenshots/1000032464.jpg" width="280" alt="Weekly list with items" />
+</p>
+
+*The weekly list groups items by category with tick-off checkboxes. The green header shows the personalised greeting, week number, item count, and the current best-store recommendation with savings — updated live as items are added.*
+
+---
+
+### Add Item — Live Product Search with All 4 Store Prices
+
+<p align="center">
+  <img src="screenshots/1000032458.jpg" width="280" alt="Add item search" />
+</p>
+
+*Searching "Mil" returns matching products instantly. Each result shows colour-coded price badges for all four stores — Coles (red), Woolworths (green), IGA (orange), ALDI (blue) — so users know the best price before they even add the item.*
+
+---
+
+### Browse — Product Catalogue
+
+<p align="center">
+  <img src="screenshots/1000032460.jpg" width="280" alt="Browse screen" />
+</p>
+
+*The Browse tab lets users explore 90+ products across 9 categories. Every product shows prices at all 4 stores with brand-coloured badges. One tap adds to the current weekly list.*
+
+---
+
+### Price Comparison
+
+<p align="center">
+  <img src="screenshots/1000032468.jpg" width="280" alt="Price comparison" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="screenshots/1000032472.jpg" width="280" alt="Price comparison detail" />
+</p>
+
+*The comparison screen shows the full basket total at Coles and Woolworths side by side, with the cheaper store highlighted in green. Below, every item is listed with its price at each store and the saving — sorted by biggest saving first. Items not found in the catalogue are flagged. The "View split shop" and "Share summary" buttons appear at the bottom.*
+
+---
+
+### Split Shop Optimiser
+
+<p align="center">
+  <img src="screenshots/1000032470.jpg" width="280" alt="Split shop" />
+</p>
+
+*The split shop screen lets users set a minimum saving threshold ($2 / $5 / $10 / $15). If the saving doesn't cross the threshold, the app tells them it's not worth splitting. When it is, items are split into two lists — one per store — with the subtotal for each. In this example: 1 item at Coles ($5.50) and 8 items at Woolworths ($43.70).*
+
+---
+
+### Dashboard
+
+<p align="center">
+  <img src="screenshots/1000032466.jpg" width="280" alt="Dashboard" />
+</p>
+
+*The dashboard shows estimated spend ($50), saving vs the other store ($2.50), item count (10), and bar charts for weekly spend and weekly savings — building a picture of habits over time.*
 
 ---
 
@@ -256,7 +334,7 @@ Claude Code was used as a senior engineering pair — not a code generator:
 - Wrote TypeScript in strict mode — zero `any` escapes
 - Wrote tests alongside the implementation, not after
 - Caught its own TypeScript errors before committing
-- Followed the branching strategy on every story
+- Followed the branching strategy on every story without being reminded
 - Debugged CI failures by reading actual error output, not guessing
 - Fixed React Navigation architecture issues and mobile keyboard/safe-area bugs
 - Enforced Azure migration rules across every file it touched
