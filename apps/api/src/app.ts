@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { logger } from './lib/logger.js';
@@ -13,6 +14,18 @@ export const app = express();
 
 // Trust proxy - required for getting real IP behind Railway load balancer
 app.set('trust proxy', 1);
+
+// CORS — allow Expo web dev server and any localhost origin
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  },
+  credentials: true,
+}));
 
 // Security middleware
 app.use(helmet());
